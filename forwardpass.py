@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Sequence
 
-from utils.var import Var
+from utils.var import Tensor
 from utils.initializer import NormalInitializer, ConstantInitializer
 
 class DenseLayer:
@@ -13,14 +13,14 @@ class DenseLayer:
     def __repr__(self):    
         return 'Weights: ' + repr(self.weights) + ' Biases: ' + repr(self.bias)
 
-    def parameters(self) -> Sequence[Var]:
+    def parameters(self) -> Sequence[Tensor]:
       params = []
       for r in self.weights:
         params.append(r)
 
       return params + self.bias
 
-    def forward(self, x: Sequence[Var]) -> Sequence[Var]:
+    def forward(self, x: Sequence[Tensor]) -> Sequence[Tensor]:
         # self.weights is a matrix with dimension n_in x n_out. We check that the dimensionality of the input 
         # to the current layer matches the number of nodes in the current layer
         weights = self.weights
@@ -43,9 +43,9 @@ class DenseLayer:
         return out
 
 
-layer = DenseLayer(3,3,act_fn=Var.relu,initializer=NormalInitializer())
+layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=NormalInitializer())
 
-input_ = np.array([Var(1.),Var(2.),Var(3.)])
+input_ = np.array([Tensor(1.),Tensor(2.),Tensor(3.)])
 print(layer.parameters())
 y = layer.forward(input_)
 for i in y:

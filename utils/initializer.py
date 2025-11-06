@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from utils.var import Var
+from utils.var import Tensor
 
 class Initializer:
 
@@ -18,10 +18,10 @@ class NormalInitializer(Initializer):
     self.std = std
 
   def init_weights(self, n_in, n_out):
-    return np.array([[Var(random.gauss(self.mean, self.std)) for _ in range(n_out)] for _ in range(n_in)])
+    return np.array([[Tensor(random.gauss(self.mean, self.std)) for _ in range(n_out)] for _ in range(n_in)])
 
   def init_bias(self, n_out):
-    return np.array([Var(0.0) for _ in range(n_out)])
+    return np.array([Tensor(0.0) for _ in range(n_out)])
 
 class ConstantInitializer(Initializer):
 
@@ -30,7 +30,7 @@ class ConstantInitializer(Initializer):
     self.bias = bias
 
   def init_weights(self, n_in, n_out):
-    return np.array([[Var(self.weight) for _ in range(n_out)] for _ in range(n_in)])
+    return np.array([[Tensor(self.weight) for _ in range(n_out)] for _ in range(n_in)])
 
   def init_bias(self, n_out):
-    return np.array([Var(self.bias) for _ in range(n_out)])
+    return np.array([Tensor(self.bias) for _ in range(n_out)])
