@@ -1,19 +1,22 @@
 # Copy and pasted from https://github.com/rasmusbergpalm/nanograd/blob/3a1bf9e9e724da813bfccf91a6f309abdade9f39/nanograd.py
 
 from math import exp, log
+import numpy as np
 
 class Var:
     """
     A variable which holds a float and enables gradient computations.
     """
 
-    def __init__(self, val: float, grad_fn=lambda: []):
-        assert type(val) == float
+    def __init__(self, val: np.ndarray, grad_fn=lambda: []):
+        assert type(val) == np.ndarray
         self.v = val
         self.grad_fn = grad_fn
-        self.grad = 0.0
+        self.grad = None
 
     def backprop(self, bp):
+        if self.grad == None:
+                self.grad = 0.0
         self.grad += bp
         for input, grad in self.grad_fn():
             input.backprop(grad * bp)
@@ -41,7 +44,13 @@ class Var:
         return self * other ** -1
 
     def __repr__(self):
-        return "Var(v=%.4f, grad=%.4f)" % (self.v, self.grad)
+        return "Var(v=%.4f, grad=%.4f)" % (self.v, self.grad) if self.grad != None else "Var(v=%.4f, grad=None)" % (self.v)
 
     def relu(self):
         return Var(self.v if self.v > 0.0 else 0.0, lambda: [(self, 1.0 if self.v > 0.0 else 0.0)])
+    
+    def zerograd(self,grad_none=False):
+        if grad_none:
+            self.grad = None
+        else:
+            self.grad = 0.0
