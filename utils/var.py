@@ -1,7 +1,9 @@
 # Copy and pasted from https://github.com/rasmusbergpalm/nanograd/blob/3a1bf9e9e724da813bfccf91a6f309abdade9f39/nanograd.py
 
 from math import exp, log
+from typing import Sequence
 import numpy as np
+from numpy.linalg import tensorsolve
 
 class Tensor:
     """
@@ -17,9 +19,14 @@ class Tensor:
         if type(self.v) != np.ndarray:
             self.v = np.array(self.v)
 
+    @property
+    def T(self):
+        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
+
     def backprop(self, bp):
-        if self._grad == None:
-            self._grad = np.zeros(self.v.shape)
+        print(self._grad)
+        if self._grad is None:
+            self._grad = np.zeros_like(self.v)
 
         self._grad += bp
 
@@ -30,12 +37,12 @@ class Tensor:
                 #print(grad, bp)
                 input.backprop(grad * bp)
 
-    @property
-    def T(self):
-        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
-
     def backward(self):
         self.backprop(1.0)
+
+    def cat_dat_shit_to_da_first_shit_in_any_fucking_dimension_maybe_questionmark(self, others: Sequence['Tensor'], axis: int):
+        oth = [o.v for o in others]
+        return Tensor(np.concat(self.v + oth, axis=axis), lambda: [(self, np.ones(o.v.shape)) for o in others])
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         #assert self.v.shape != other.v.shape ""
@@ -77,18 +84,12 @@ class Tensor:
 
 if __name__ == "__main__":
     a = Tensor(np.array([2, 3]))
-    b = Tensor(np.array([2, 4]).T)
+    b = Tensor(np.array([2, 4]))
+    c = Tensor(np.array([2, 4]))
 
-    f = b @ a
+    f = a.cat_dat_shit_to_da_first_shit_in_any_fucking_dimension_maybe_questionmark([b, c], 0)
     f.backward()
-    print(f)
-    print(a.grad())
+    
 
-    # Should be equal to the above
-    a = Tensor(np.array([2, 3]))
-    b = Tensor(np.array([2, 4])).T
-
-    f = b @ a
-    f.backward()
-    print(f)
-    print(a.grad())
+    
+    

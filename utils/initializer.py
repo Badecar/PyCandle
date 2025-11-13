@@ -18,19 +18,16 @@ class NormalInitializer(Initializer):
     self.std = std
 
   def init_weights(self, n_in, n_out):
-    return [[Tensor(random.gauss(self.mean, self.std)) for _ in range(n_out)] for _ in range(n_in)]
+    return Tensor(np.random.normal(self.mean, self.std, size=(n_in+1,n_out)))
 
-  def init_bias(self, n_out):
-    return [Tensor(0.0) for _ in range(n_out)]
+# class ConstantInitializer(Initializer):
 
-class ConstantInitializer(Initializer):
+#   def __init__(self, weight=1.0, bias=0.0):
+#     self.weight = weight
+#     self.bias = bias
 
-  def __init__(self, weight=1.0, bias=0.0):
-    self.weight = weight
-    self.bias = bias
+#   def init_weights(self, n_in, n_out):
+#     return Tensor(self.weight for _ in range(n_out) for _ in range(n_in))
 
-  def init_weights(self, n_in, n_out):
-    return [[Tensor(self.weight) for _ in range(n_out)] for _ in range(n_in)]
-
-  def init_bias(self, n_out):
-    return [Tensor(self.bias) for _ in range(n_out)]
+#   def init_bias(self, n_out):
+#     return Tensor(self.bias) for _ in range(n_out)]
