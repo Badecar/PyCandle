@@ -75,7 +75,8 @@ class Tensor:
             output_string += self.custom_name + " "
         output_string += str(self.v)
         if self._grad is not None:
-            return str(self.v) + " grad: " + str(self._grad)
+            output_string += " grad: " + str(self._grad)
+        return output_string
 
 
     def relu(self):
