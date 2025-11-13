@@ -26,10 +26,7 @@ class DenseLayer:
 
         # For some given data point single_input, we now want to calculate the resulting value in each node in the current layer
         # We therefore loop over the (number of) nodes in the current layer:
-        print(x)
-        print(self.weights)
         out = x @ self.weights + self.bias
-        print(out)
         out = self.act_fn(out)
         print(out)
         return out
@@ -49,7 +46,7 @@ class DenseLayer:
 
 
 # layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=NormalInitializer())
-layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=ConstantInitializer(weight=2, bias=1))
+layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=ConstantInitializer(weight=2, bias=2))
 
 input_ = Tensor(np.array([[-1,-2,-3],[4,5,6],[7,8,9]]))
 # print(layer.parameters())

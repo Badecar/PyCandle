@@ -12,7 +12,7 @@ class Tensor:
 
     def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None):
         #assert type(val) == np.ndarray
-        self.v = np.array(val, dtype=np.float32)
+        self.v = np.array(val, dtype=float)
         self.grad_fn = grad_fn
         self._grad = None
         self.custom_name = custom_name
@@ -27,7 +27,8 @@ class Tensor:
     def backprop(self, bp):
         if self._grad is None:
             self._grad = np.zeros_like(self.v)
-        
+        print("bp", bp)
+        print("grad",self._grad)
         self._grad += bp
 
         for input, grad in self.grad_fn():
@@ -37,7 +38,7 @@ class Tensor:
                 input.backprop(grad * bp)
 
     def backward(self):
-        self.backprop(np.array([1.0]))
+        self.backprop(np.ones_like(self.v))
 
     def cat(self, others: Sequence['Tensor'], axis: int):
         all = [self] + others
@@ -89,20 +90,20 @@ class Tensor:
             self._grad = 0.0
 
 if __name__ == "__main__":
-    a = Tensor(np.array([1],dtype=np.float32), custom_name="a")
-    b = Tensor(np.array([2],dtype=np.float32), custom_name="b")
-    c = Tensor(np.array([1],dtype=np.float32), custom_name="c")
-    d = Tensor(np.array([2],dtype=np.float32), custom_name="d")
-    e = Tensor(np.array([3, 3],dtype=np.float32), custom_name="e")
+    a = Tensor(np.array([1,2,3]))
+    b = Tensor(np.array([[-1,-2,-3],[4,5,6],[7,8,9]]))
+    bias = Tensor(np.ones(3)*2)
+    print(a)
+    print(b)
+    f = b @ a
+    print(f)
+    # f = f.relu()
+    print(f)
 
-    ab = a * b
-    cd = c * d
-
-    f = ab.cat([cd], 0) * e
     f.backward()
-    print(f.grad())
-    print(ab.grad())
-    print(cd.grad())
-    
+
+    print(a.grad())
+    # print(b.grad())
+    # print(bias.grad())
     
     
