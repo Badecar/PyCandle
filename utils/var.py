@@ -74,7 +74,7 @@ class Tensor:
         return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"{self.custom_name} * {other.custom_name}")
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T}, {"input": other, "grad": self.v.T}])
+        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T @ np.ones_like(self.v)}, {"input": other, "grad": self.v.T @ np.ones_like(other.v)}])
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
