@@ -24,17 +24,15 @@ class Tensor:
         return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
 
     def backprop(self, bp):
-        print(self._grad)
         if self._grad is None:
             self._grad = np.zeros_like(self.v)
-
+        
         self._grad += bp
 
         for input, grad in self.grad_fn():
             if "T" in grad:
                 input.backprop(bp.T)
             else:
-                #print(grad, bp)
                 input.backprop(grad * bp)
 
     def backward(self):
@@ -74,7 +72,7 @@ class Tensor:
         return str(self.v) #"Var(v=%.4f, grad=%.4f)" % (self.v, self.grad) if self.grad != None else "Var(v=%.4f, grad=None)" % (self.v)
 
     def relu(self):
-        return Tensor(self.v if self.v > 0.0 else 0.0, lambda: [(self, 1.0 if self.v > 0.0 else 0.0)])
+        return Tensor(np.maximum(self.v, 0.0), lambda: [(self, (self.v > 0.0).astype(float))])
     
     def zerograd(self,grad_none=False):
         if grad_none:

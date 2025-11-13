@@ -15,21 +15,26 @@ class DenseLayer:
 
     def parameters(self) -> Sequence[Tensor]:
       params = []
-      for r in self.weights:
+      for r in self.weights.v:
         params.append(r)
 
-      return params + self.bias
+      return params + self.bias.v
 
-    def forward(self, x: Sequence[Tensor]) -> Sequence[Tensor]:
+    def forward(self, x: Tensor) -> Tensor:
         # self.weights is a matrix with dimension n_in x n_out. We check that the dimensionality of the input 
         # to the current layer matches the number of nodes in the current layer
-        weights = self.weights
-        out = []
+
         # For some given data point single_input, we now want to calculate the resulting value in each node in the current layer
         # We therefore loop over the (number of) nodes in the current layer:
-        out = weights @ x + self.bias
-        
-        
+        print(x)
+        print(self.weights)
+        out = x @ self.weights + self.bias
+        print(out)
+        out = self.act_fn(out)
+        print(out)
+        return out
+
+
 
         # for j in range(len(weights[0])): 
         #     # Initialize the node value depending on its corresponding parameters.
@@ -43,13 +48,14 @@ class DenseLayer:
         return out
 
 
-layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=NormalInitializer())
+# layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=NormalInitializer())
+layer = DenseLayer(3,3,act_fn=Tensor.relu,initializer=ConstantInitializer(weight=2, bias=1))
 
-input_ = np.array([Tensor(1.),Tensor(2.),Tensor(3.)])
-print(layer.parameters())
+input_ = Tensor(np.array([[-1,-2,-3],[4,5,6],[7,8,9]]))
+# print(layer.parameters())
 y = layer.forward(input_)
-for i in y:
-   i.backward()
+y.backward()
+
 
 print("____")
 print(layer.parameters())
