@@ -8,7 +8,7 @@ class Tensor:
     A tensor which holds a array and enables gradient computations.
     """
 
-    def __init__(self, val:np.ndarray|list, grad_fn=lambda: []):
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: []):
         #assert type(val) == np.ndarray
         self.v = val
         self.grad_fn = grad_fn
@@ -20,16 +20,19 @@ class Tensor:
     def backprop(self, bp):
         if self._grad == None:
             self._grad = np.zeros(self.v.shape)
-        # if self._grad == "transpose":
-        #     bp = bp.T
-        self._grad += bp
-        for input, grad in self.grad_fn():
-            input.backprop(grad * bp)
 
-    # @property
-    # def T(self):
-    #     return Tensor(self.v.T, lambda: [self, "transpose"])
-    #     # grad does not work
+        self._grad += bp
+
+        for input, grad in self.grad_fn():
+            if "T" in grad:
+                input.backprop(bp.T)
+            else:
+                #print(grad, bp)
+                input.backprop(grad * bp)
+
+    @property
+    def T(self):
+        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
 
     def backward(self):
         self.backprop(1.0)
@@ -72,11 +75,20 @@ class Tensor:
         else:
             self._grad = 0.0
 
-if __name__ == "main":
-    a = Tensor(np.array([[3,2]]))
-    b = Tensor([2,4])
+if __name__ == "__main__":
+    a = Tensor(np.array([2, 3]))
+    b = Tensor(np.array([2, 4]).T)
 
-    f = a**3
+    f = b @ a
     f.backward()
+    print(f)
     print(a.grad())
 
+    # Should be equal to the above
+    a = Tensor(np.array([2, 3]))
+    b = Tensor(np.array([2, 4])).T
+
+    f = b @ a
+    f.backward()
+    print(f)
+    print(a.grad())
