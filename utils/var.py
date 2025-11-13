@@ -12,7 +12,7 @@ class Tensor:
 
     def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None):
         #assert type(val) == np.ndarray
-        self.v = val
+        self.v = np.array(val, dtype=np.float32)
         self.grad_fn = grad_fn
         self._grad = None
         self.custom_name = custom_name
@@ -41,17 +41,17 @@ class Tensor:
 
     def cat(self, others: Sequence['Tensor'], axis: int):
         all = [self] + others
-        return Tensor(np.concat([o.v for o in all], axis=axis), lambda: [(o, np.ones(o.v.shape)) for o in all], custom_name=f"cat({', '.join([o.custom_name for o in all])})")
+        return Tensor(np.concat([o.v for o in all], axis=axis), lambda: [(o, np.ones(o.v.shape)) for o in all])
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         #assert self.v.shape != other.v.shape ""
-        return Tensor(self.v + other.v, lambda: [(self, np.ones(self.v.shape)), (other, np.ones(other.v.shape))], custom_name=f"{self.custom_name} + {other.custom_name}")
+        return Tensor(self.v + other.v, lambda: [(self, np.ones(self.v.shape)), (other, np.ones(other.v.shape))])
     
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v * other.v, lambda: [(self, other.v), (other, self.v)], custom_name=f"{self.custom_name} * {other.custom_name}")
+        return Tensor(self.v * other.v, lambda: [(self, other.v), (other, self.v)])
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v @ other.v, lambda: [(self, other.v.T), (other, self.v.T)], custom_name=f"{self.custom_name} @ {other.custom_name}")
+        return Tensor(self.v @ other.v, lambda: [(self, other.v.T), (other, self.v.T)])
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
