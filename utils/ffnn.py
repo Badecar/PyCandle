@@ -2,8 +2,8 @@ import numpy as np
 from typing import Sequence
 
 from denselayer import DenseLayer
-from utils.tensor import Tensor
-from utils.initializer import NormalInitializer, ConstantInitializer
+from tensor import Tensor
+from initializer import NormalInitializer, ConstantInitializer
 
 
 class FFNN:

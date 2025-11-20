@@ -4,15 +4,18 @@ import numpy as np
 from loss_function import cross_entropy_loss
 from initializer import NormalInitializer
 
+class Optimizer():
 
-def SGD(params, lr=0.001,T_end=1000):
-    ...
-    for t in range(1,T_end):
-        print(t)
-        gt = params[t].grad * params[t]
-        params[t] = params[t] - lr * gt
+    def SGD(model, lr=0.001,T_end=1000):
+        
 
-    return params[t]
+
+        for t in range(1,T_end):
+            print(t)
+            gt = params[t].grad * params[t]
+            params[t] = params[t] - lr * gt
+
+        return params[t]
 
 if __name__ == "__main__":
     
