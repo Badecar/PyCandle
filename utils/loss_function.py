@@ -1,4 +1,4 @@
-from var import Tensor
+from tensor import Tensor
 from math import exp, log
 import numpy as np
 

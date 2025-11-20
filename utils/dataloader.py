@@ -2,7 +2,7 @@
 import kagglehub
 import numpy as np
 
-from var import Tensor
+from tensor import Tensor
 #%%
 # Download latest version
 path = kagglehub.dataset_download("zalando-research/fashionmnist")

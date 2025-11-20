@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Sequence
 
-from utils.var import Tensor
+from utils.tensor import Tensor
 from utils.initializer import NormalInitializer, ConstantInitializer
 
 class DenseLayer:

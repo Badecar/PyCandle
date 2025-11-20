@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from utils.var import Tensor
+from utils.tensor import Tensor
 
 class Initializer:
 
