@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Sequence
 
-from utils.tensor import Tensor
-from utils.initializer import NormalInitializer, ConstantInitializer
+from tensor import Tensor
+from initializer import NormalInitializer, ConstantInitializer
 
 class DenseLayer:
     def __init__(self, n_in: int, n_out: int, batch_size: int, act_fn, initializer = NormalInitializer()):
