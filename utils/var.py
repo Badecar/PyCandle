@@ -111,8 +111,17 @@ class Tensor:
         if self._grad is not None:
             output_string += " grad: " + str(self._grad)
         return output_string
+    
+    def sum(self, axis=None, keepdims=False):
+        result = np.sum(self.v, axis=axis, keepdims=keepdims)
+        return Tensor(result, lambda: [{"input": self, "grad": np.ones_like(self.v)}])
+    
+    def exp(self):
+        ev = np.exp(self.v)
+        return Tensor(ev, lambda: [(self, ev)])
 
-
+    def log(self):
+        return Tensor(np.log(self.v), lambda: [(self, self.v ** -1)])
     def relu(self):
         return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
     
