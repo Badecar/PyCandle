@@ -23,32 +23,46 @@ class Tensor:
     @property
     def T(self):
         return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
+    
+    @property
+    def grad(self):
+        return self._grad
 
-    def backprop(self, bp: Tensor):
-        print("debug: backprop on", self.custom_name)
+    def backprop(self, bp):
         if self._grad is None:
             self._grad = np.zeros_like(self.v)
 
         self._grad += bp
-
         for grad_fn in self.grad_fn():
             input: Tensor = grad_fn["input"]
             grad: np.ndarray = grad_fn["grad"]
-            try:
-                start_index = grad_fn["start_index"]
-                end_index = grad_fn["end_index"]
-            except:
-                start_index = None
-                end_index = None
 
-            if "T" in grad:
+            start_index = grad_fn.get("start_index", None)
+            end_index = grad_fn.get("end_index", None)
+            matrix_side = grad_fn.get("matrix", None)
+
+            print("bp", bp)
+            print("grad", grad)
+
+            if matrix_side != None:
+                print(matrix_side)
+                if matrix_side == "L":
+                    input.backprop(bp @ grad)
+                elif matrix_side == "R":
+                    input.backprop(grad @ bp)
+                else:
+                    raise ValueError(f"Invalid matrix_side value: {matrix_side}")
+
+            elif "T" in grad:
                 input.backprop(bp.T)
+            # CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
-                input.backprop(grad * bp[start_index:end_index])
+                input.backprop(grad @ bp[start_index:end_index])
             else:
                 input.backprop(grad * bp)
 
     def backward(self):
+        # self.backprop(np.array([1]))
         self.backprop(np.ones_like(self.v))
 
     def cat(self, others: Sequence['Tensor'], axis: int):
@@ -64,17 +78,17 @@ class Tensor:
             }
             outputs.append(output)
             current_index += part.v.shape[axis]
-        return Tensor(np.concat([o.v for o in all], axis=axis), lambda: outputs, custom_name=f"cat({', '.join([o.custom_name for o in all])})")
+        return Tensor(np.concat([o.v for o in all], axis=axis), lambda: outputs)
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         #assert self.v.shape != other.v.shape ""
-        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones(self.v.shape)}, {"input": other, "grad": np.ones(other.v.shape)}], custom_name=f"{self.custom_name} + {other.custom_name}")
+        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}])
     
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"{self.custom_name} * {other.custom_name}")
+        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}])
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T @ np.ones_like(self.v)}, {"input": other, "grad": self.v.T @ np.ones_like(other.v)}])
+        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}])
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
@@ -89,9 +103,6 @@ class Tensor:
     def __truediv__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return self * other ** -1
 
-    def grad(self):
-        return self._grad
-
     def __repr__(self):
         output_string = ""
         if self.custom_name is not None:
@@ -103,7 +114,7 @@ class Tensor:
 
 
     def relu(self):
-        return Tensor(np.maximum(self.v, 0.0), lambda: [(self, (self.v > 0.0).astype(float))])
+        return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
     
     def zerograd(self,grad_none=False):
         if grad_none:
@@ -112,39 +123,57 @@ class Tensor:
             self._grad = 0.0
 
 if __name__ == "__main__":
-    a = Tensor(np.array([1,2,3]))
-    b = Tensor(np.array([[-1,-2,-3],[4,5,6],[7,8,9]]))
-    bias = Tensor(np.ones(3)*2)
-    print(a)
-    print(b)
-    f = b @ a
-    print(f)
-    # f = f.relu()
-    print(f)
+    a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
+    b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
+
+    bias = Tensor(np.ones_like(b.v@a.v)*2)
+
+    # arr1_shape, arr2_shape = b.v.shape[0] , a.v.shape[1] if a.v.ndim > 1 else 1
+    # g = np.ones([arr1_shape, arr2_shape])
+    # print("g",g)
+    # print("b.T", b.v.T)
+
+    # print("grada", b.v.T @ g)
+
+    # print("g",g)
+    # print("a.T", a.v.T)
+    # print("gradb", g @ a.v.T)
+
+    print("a", a)
+    print("b", b)
+    print("bias", bias)
+
+    f = b @ a + bias
+    # print("f", f)
+    
+    f = f.relu()
+    print("f", f)
 
     f.backward()
 
-    print(a.grad())
-    # print(b.grad())
-    # print(bias.grad())
-    a = Tensor(np.array([1],dtype=float), custom_name="a")
-    b = Tensor(np.array([2],dtype=float), custom_name="b")
-    c = Tensor(np.array([1],dtype=float), custom_name="c")
-    d = Tensor(np.array([2],dtype=float), custom_name="d")
-    e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
+    print("a grad", a.grad)
+    print("b grad", b.grad)
+    print("bias grad", bias.grad)
 
-    ab = a * b
-    cd = c * d
 
-    f = ab.cat([cd], 0)
+    # a = Tensor(np.array([1],dtype=float), custom_name="a")
+    # b = Tensor(np.array([2],dtype=float), custom_name="b")
+    # c = Tensor(np.array([1],dtype=float), custom_name="c")
+    # d = Tensor(np.array([2],dtype=float), custom_name="d")
+    # e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
 
-    g = f @ e
-    g.backward()
-    print(f.grad())
-    print(ab.grad())
-    print(cd.grad())
-    print(f.grad())
-    print(e.grad())
+    # ab = a * b
+    # cd = c * d
+
+    # f = ab.cat([cd], 0)
+
+    # g = f @ e
+    # g.backward()
+    # print(f.grad)
+    # print(ab.grad)
+    # print(cd.grad)
+    # print(f.grad)
+    # print(e.grad)
     
     
     
