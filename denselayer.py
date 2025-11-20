@@ -1,7 +1,5 @@
-from readline import parse_and_bind
 import numpy as np
 from typing import Sequence
-import numpy as np
 
 from utils.var import Tensor
 from utils.initializer import NormalInitializer, ConstantInitializer
@@ -51,7 +49,9 @@ input_ = Tensor(np.array([[1, 2],
                          [5, 6]]))
 batch_size = input_.v.shape[1]
 
-layer = DenseLayer(n_in=3, n_out=3, batch_size=batch_size, act_fn=Tensor.relu, initializer=ConstantInitializer(weight=2, bias=2))
+# layer = DenseLayer(n_in=3, n_out=3, batch_size=batch_size, act_fn=Tensor.relu, initializer=ConstantInitializer(weight=2, bias=2))
+layer = DenseLayer(n_in=3, n_out=3, batch_size=batch_size, act_fn=Tensor.relu, initializer=NormalInitializer())
+
 
 y = layer.forward(input_)
 print(y)
