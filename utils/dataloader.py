@@ -1,46 +1,22 @@
 #%%
 import kagglehub
 import numpy as np
-
-from tensor import Tensor
-#%%
+import pandas as pd
+from utils.tensor import Tensor
 # Download latest version
 path = kagglehub.dataset_download("zalando-research/fashionmnist")
 
-print("Path to dataset files:", path)
-
-#%%
-# Install dependencies as needed:
-# pip install kagglehub[pandas-datasets]
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
+# print("Path to dataset files:", path)
 
 
-# Set the path to the file you'd like to load
-file_path = "/Users/benjaminbanks/.cache/kagglehub/datasets/zalando-research/fashionmnist/versions/4//Users/benjaminbanks/.cache/kagglehub/datasets/zalando-research/fashionmnist/versions/4/fashion-mnist_train.csv"
 
-# Load the latest version
-df = kagglehub.dataset_load(
-  KaggleDatasetAdapter.PANDAS,
-  "zalando-research/fashionmnist",
-  file_path,
 
-  # Provide any additional arguments like 
-  # sql_query or pandas_kwargs. See the 
-  # documenation for more information:
-  
-  # https://github.com/Kaggle/kagglehub/blob/main/README.md#kaggledatasetadapterpandas
-)
 
-print("First 5 records:", df.head())
-# %%
-import pandas as pd
+train_df = pd.read_csv(path + "/fashion-mnist_train.csv")
+test_df  = pd.read_csv(path + "/fashion-mnist_test.csv")
 
-train_df = pd.read_csv("/Users/benjaminbanks/.cache/kagglehub/datasets/zalando-research/fashionmnist/versions/4/fashion-mnist_train.csv")
-test_df  = pd.read_csv("/Users/benjaminbanks/.cache/kagglehub/datasets/zalando-research/fashionmnist/versions/4/fashion-mnist_test.csv")
-
-print("Train data shape:", train_df.shape)
-print("Test data shape:", test_df.shape)
+# print("Train data shape:", train_df.shape)
+# print("Test data shape:", test_df.shape)
 
 class_names = [
     "T-shirt/top",  
@@ -55,11 +31,11 @@ class_names = [
     "Ankle boot"   
 ]
 
-X_train_full = train_df.drop("label", axis=1).values
-y_train_full = train_df["label"].values
+X_train_full = train_df.drop("label", axis=1).values / 255.0  # Normalize to [0, 1]
+y_train_full = np.eye(len(class_names))[train_df["label"].values]
 
-X_test = test_df.drop("label", axis=1).values
-y_test = test_df["label"].values
+X_test = test_df.drop("label", axis=1).values / 255.0  # Normalize to [0, 1]
+y_test = np.eye(len(class_names))[test_df["label"].values]
 #%%
 from abc import ABC, abstractmethod
 
@@ -111,24 +87,35 @@ class DataLoader():
     else:
       return (len(self.dataset) + self.batch_size - 1) // self.batch_size
 
+  def __iter__(self):
+    self.batch_idx = 0
+    self.indices = list(range(len(self.dataset)))
+    if self.shuffle:
+      np.random.shuffle(self.indices)
+    return self
+
   def __next__(self) -> tuple[Tensor, Tensor]:
     if self.batch_idx >= len(self):
       raise StopIteration
     batch_indices = self.indices[self.batch_idx * self.batch_size:(self.batch_idx + 1) * self.batch_size]
     x = Tensor([self.dataset[i][0].v for i in batch_indices])
     y = Tensor([self.dataset[i][1].v for i in batch_indices])
+    self.batch_idx += 1
     return x, y
 
 
   def __repr__(self):
     return f"DataLoader(dataset={self.dataset}, batch_size={self.batch_size}, shuffle={self.shuffle}, drop_last={self.drop_last})"
 
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, drop_last=False)
+# train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, drop_last=False)
+
+# for batch in train_loader:
+#   break
 #%%
 # for batch in train_loader:
 #   print(batch)
 #   break
 
-x, y = next(train_loader)
-x.v.shape, y.v.shape
+# x, y = next(train_loader)
+# x.v.shape, y.v.shape
 #%%

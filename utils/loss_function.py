@@ -1,30 +1,30 @@
-from tensor import Tensor
+from utils.tensor import Tensor
 from math import exp, log
 import numpy as np
 
-def cross_entropy_loss(t: Tensor, h: Tensor):
+def cross_entropy_loss(t: Tensor, x: Tensor):
     """Cross entropy loss function for multi-class classification.
     
     Computes the cross entropy loss between true labels (t) and predicted logits (h).
-    The loss is calculated as: -sum(t_i * log(softmax(h_i))) for each sample.
+    The loss is calculated as: -sum(t_i * log(softmax(h_i))) for each sample,
+    then averaged over the batch.
     
     Args:
-        t: True labels (one-hot encoded)
-        h: Predicted logits
+        t: True labels (one-hot encoded) - shape (batch_size, num_classes)
+        x: Predicted logits - shape (batch_size, num_classes)
         
     Returns:
-        Cross entropy loss value
+        Cross entropy loss value (scalar)
     """
-    # Numerically stable log-softmax
-    # 1. Subtract the max for stability
-    h_max = Tensor(h.v.max(axis=1, keepdims=True))
-    log_softmax = h - h_max - (h - h_max).exp().sum(axis=1, keepdims=True).log()
-    
-    # 2. Compute the negative log-likelihood loss
+    # Compute log_softmax = log(exp(x) / sum(exp(x))) = x - log(sum(exp(x)))
+    log_sum_exp = x.exp().sum(axis=1, keepdims=True).log()
+    log_softmax = x - log_sum_exp
+
+    # Compute the negative log-likelihood loss
     # The multiplication with `t` selects the correct log-probability.
-    # The negative sign makes it a loss to be minimize d.
-    # The final sum averages the loss over the batch.
-    loss = -(t * log_softmax).sum()
+    # Sum over all samples and classes, then divide by batch size
+    batch_size = t.v.shape[0]
+    loss = -(t * log_softmax).sum() * Tensor(1.0 / batch_size)
     
     return loss
 
