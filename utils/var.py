@@ -28,7 +28,7 @@ class Tensor:
     def grad(self):
         return self._grad
 
-    def backprop(self, bp):
+    def backprop(self, bp, debug=False):
         if self._grad is None:
             self._grad = np.zeros_like(self.v)
 
@@ -41,11 +41,11 @@ class Tensor:
             end_index = grad_fn.get("end_index", None)
             matrix_side = grad_fn.get("matrix", None)
 
-            print("bp", bp)
-            print("grad", grad)
+            if debug:
+                print("bp", bp)
+                print("grad", grad)
 
             if matrix_side != None:
-                print(matrix_side)
                 if matrix_side == "L":
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
@@ -61,9 +61,9 @@ class Tensor:
             else:
                 input.backprop(grad * bp)
 
-    def backward(self):
+    def backward(self, debug=False):
         # self.backprop(np.array([1]))
-        self.backprop(np.ones_like(self.v))
+        self.backprop(np.ones_like(self.v), debug=debug)
 
     def cat(self, others: Sequence['Tensor'], axis: int):
         all = [self] + others
@@ -123,21 +123,18 @@ class Tensor:
             self._grad = 0.0
 
 if __name__ == "__main__":
-    a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
-    b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
+    # a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
+    # b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
+    # bias = Tensor(np.ones_like(b.v@a.v)*2)
 
-    bias = Tensor(np.ones_like(b.v@a.v)*2)
+    a = Tensor(np.array([[1, 2],
+                         [3, 4],
+                         [5, 6]]))
+    b = Tensor(np.array([[7, 8, 9],
+                         [10, 11, 12],
+                         [13, 14, 15]]))
+    bias = Tensor(np.ones_like(b.v @ a.v) * 2)
 
-    # arr1_shape, arr2_shape = b.v.shape[0] , a.v.shape[1] if a.v.ndim > 1 else 1
-    # g = np.ones([arr1_shape, arr2_shape])
-    # print("g",g)
-    # print("b.T", b.v.T)
-
-    # print("grada", b.v.T @ g)
-
-    # print("g",g)
-    # print("a.T", a.v.T)
-    # print("gradb", g @ a.v.T)
 
     print("a", a)
     print("b", b)

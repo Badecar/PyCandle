@@ -20,8 +20,8 @@ class NormalInitializer(Initializer):
   def init_weights(self, n_in, n_out):
     return Tensor(np.random.normal(self.mean, self.std, size=(n_in,n_out)))
 
-  def init_bias(self, n_out):
-    return Tensor(np.zeros(n_out))
+  def init_bias(self, n_out, batch_size):
+    return Tensor(np.zeros([n_out, batch_size]))
 
 class ConstantInitializer(Initializer):
 
@@ -32,5 +32,5 @@ class ConstantInitializer(Initializer):
   def init_weights(self, n_in, n_out):
     return Tensor(np.ones([n_in,n_out]) * self.weight)
 
-  def init_bias(self, n_out):
-    return Tensor(np.ones(n_out) * self.bias)
+  def init_bias(self, n_out, batch_size):
+    return Tensor(np.ones([n_out, batch_size]) * self.bias)
