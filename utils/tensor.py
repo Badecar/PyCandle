@@ -42,6 +42,7 @@ class Tensor:
             matrix_side = grad_fn.get("matrix", None)
 
             if debug:
+                print("custom_name", self.custom_name)
                 print("bp", bp)
                 print("grad", grad)
 
@@ -78,24 +79,30 @@ class Tensor:
             }
             outputs.append(output)
             current_index += part.v.shape[axis]
-        return Tensor(np.concat([o.v for o in all], axis=axis), lambda: outputs)
+        return Tensor(np.concatenate([o.v for o in all], axis=axis), lambda: outputs, custom_name=f"cat({', '.join([o.custom_name for o in all])})")
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         #assert self.v.shape != other.v.shape ""
-        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}])
+        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})")
     
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}])
+        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"({self.custom_name} * {other.custom_name})")
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}])
+        if len(self.v.shape) == 1 and len(other.v.shape) == 1:
+            return self.__mul__(other)
+        if self.v.shape[-1] != other.v.shape[-2]:
+            raise ValueError(f"Shape mismatch: {self.v.shape} @ {other.v.shape}")
+        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}], custom_name=f"({self.custom_name} @ {other.custom_name})")
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
-        return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}])
+        return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}], custom_name=f"({self.custom_name} ** {power})")
 
     def __neg__(self: 'Tensor') -> 'Tensor':
-        return Tensor(-1.0) * self
+        result = Tensor(-1.0) * self
+        result.custom_name = f"-({self.custom_name})"
+        return result
 
     def __sub__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return self + (-other)
@@ -125,7 +132,7 @@ class Tensor:
     def relu(self):
         return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
     
-    def zerograd(self,grad_none=False):
+    def zero_grad(self,grad_none=False):
         if grad_none:
             self._grad = None
         else:
@@ -136,50 +143,54 @@ if __name__ == "__main__":
     # b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
     # bias = Tensor(np.ones_like(b.v@a.v)*2)
 
-    a = Tensor(np.array([[1, 2],
-                         [3, 4],
-                         [5, 6]]))
-    b = Tensor(np.array([[7, 8, 9],
-                         [10, 11, 12],
-                         [13, 14, 15]]))
-    bias = Tensor(np.ones_like(b.v @ a.v) * 2)
+    # a = Tensor(np.array([[1, 2],
+    #                      [3, 4],
+    #                      [5, 6]]))
+    # b = Tensor(np.array([[7, 8, 9],
+    #                      [10, 11, 12],
+    #                      [13, 14, 15]]))
+    # bias = Tensor(np.ones_like(b.v @ a.v) * 2)
 
 
-    print("a", a)
-    print("b", b)
-    print("bias", bias)
+    # print("a", a)
+    # print("b", b)
+    # print("bias", bias)
 
-    f = b @ a + bias
+    # f = b @ a + bias
+    # # print("f", f)
+    
+    # f = f.relu()
     # print("f", f)
-    
-    f = f.relu()
-    print("f", f)
 
-    f.backward()
+    # f.backward()
 
-    print("a grad", a.grad)
-    print("b grad", b.grad)
-    print("bias grad", bias.grad)
+    # print("a grad", a.grad)
+    # print("b grad", b.grad)
+    # print("bias grad", bias.grad)
 
 
-    # a = Tensor(np.array([1],dtype=float), custom_name="a")
-    # b = Tensor(np.array([2],dtype=float), custom_name="b")
-    # c = Tensor(np.array([1],dtype=float), custom_name="c")
-    # d = Tensor(np.array([2],dtype=float), custom_name="d")
-    # e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
+    a = Tensor(np.array([1],dtype=float), custom_name="a")
+    b = Tensor(np.array([2],dtype=float), custom_name="b")
+    c = Tensor(np.array([1],dtype=float), custom_name="c")
+    d = Tensor(np.array([2],dtype=float), custom_name="d")
+    e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
 
-    # ab = a * b
-    # cd = c * d
+    ab = a * b
+    cd = c * d
 
-    # f = ab.cat([cd], 0)
+    f = ab.cat([cd], 0)
 
-    # g = f @ e
-    # g.backward()
-    # print(f.grad)
-    # print(ab.grad)
-    # print(cd.grad)
-    # print(f.grad)
-    # print(e.grad)
-    
-    
-    
+    # f = Tensor(np.array([3, 3],dtype=float), custom_name="f")
+
+    g = f @ e
+    # h = g.T
+    g.backward()
+    print(ab)
+    print(cd)
+    print(f)
+    print(e)
+    print(g)
+
+    #%%
+    # import numpy as np
+    # np.array([[3], [3]]) @  np.array([[3, 3]])
