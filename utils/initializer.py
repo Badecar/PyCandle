@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from utils.nn import Parameter
+from utils.cn import Parameter
 from utils.tensor import Tensor
 from abc import ABC, abstractmethod
 
@@ -9,9 +9,9 @@ class Initializer(ABC):
   def init_weights(self, n_in, n_out):
     pass
 
-  @abstractmethod
-  def init_bias(self, n_out):
-    pass
+  # @abstractmethod
+  # def init_bias(self, n_out):
+  #   pass
 
 
 class NormalInitializer(Initializer):
@@ -28,8 +28,8 @@ class NormalInitializer(Initializer):
       std = self.std
     return Parameter(np.random.normal(self.mean, std, size=(n_in,n_out)))
 
-  def init_bias(self, n_out, batch_size):
-    return Parameter(np.zeros([n_out, batch_size]))
+  # def init_bias(self, n_out, batch_size):
+  #   return Parameter(np.zeros([n_out, batch_size]))
 
 class ConstantInitializer(Initializer):
 
@@ -40,5 +40,5 @@ class ConstantInitializer(Initializer):
   def init_weights(self, n_in, n_out):
     return Parameter(np.ones([n_in,n_out]) * self.weight)
 
-  def init_bias(self, n_out, batch_size):
-    return Parameter(np.ones([n_out, batch_size]) * self.bias)
+  # def init_bias(self, n_out, batch_size):
+  #   return Parameter(np.ones([n_out, batch_size]) * self.bias)

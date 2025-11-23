@@ -8,10 +8,6 @@ path = kagglehub.dataset_download("zalando-research/fashionmnist")
 
 # print("Path to dataset files:", path)
 
-
-
-
-
 train_df = pd.read_csv(path + "/fashion-mnist_train.csv")
 test_df  = pd.read_csv(path + "/fashion-mnist_test.csv")
 
@@ -102,7 +98,6 @@ class DataLoader():
     y = Tensor([self.dataset[i][1].v for i in batch_indices])
     self.batch_idx += 1
     return x, y
-
 
   def __repr__(self):
     return f"DataLoader(dataset={self.dataset}, batch_size={self.batch_size}, shuffle={self.shuffle}, drop_last={self.drop_last})"

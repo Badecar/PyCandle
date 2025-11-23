@@ -16,7 +16,7 @@ class Optimizer(ABC):
 
     @abstractmethod
     def step(self):
-        raise NotImplementedError
+        pass
 
 
 class SGD(Optimizer):

@@ -13,7 +13,7 @@ class FFNN:
         for i in range(num_hidden_layers):
             l = DenseLayer(n_in=self.dims[i], n_out=self.dims[i+1], batch_size=batch_size, act_fn=act_fns[i], initializer=initializer)
             self.layers.append(l)
-    
+
     def forward(self, x):
         for layer in self.layers:
             x = layer.forward(x)

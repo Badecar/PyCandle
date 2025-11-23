@@ -147,8 +147,8 @@ class Tensor:
         return Tensor(ev, lambda: [{"input" : self, "grad" : ev}])
 
     def log(self):
-
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}])
+
     def relu(self):
         return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
     
