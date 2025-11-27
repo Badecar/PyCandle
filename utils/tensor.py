@@ -32,6 +32,19 @@ class Tensor:
         if self._grad is None:
             self._grad = np.zeros_like(self.v)
 
+        # Handle broadcasting: if bp shape doesn't match self.v shape, sum to reduce
+        bp = np.asarray(bp)
+        if bp.shape != self.v.shape:
+            # Sum over extra leading dimensions
+            ndim_diff = len(bp.shape) - len(self.v.shape)
+            for _ in range(ndim_diff):
+                bp = bp.sum(axis=0)
+            
+            # Sum over dimensions that were broadcast (size 1 -> size N)
+            for i in range(len(self.v.shape)):
+                if self.v.shape[i] == 1 and bp.shape[i] > 1:
+                    bp = bp.sum(axis=i, keepdims=True)
+        
         self._grad += bp
         for grad_fn in self.grad_fn():
             input: Tensor = grad_fn["input"]
@@ -51,16 +64,19 @@ class Tensor:
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
                     input.backprop(grad @ bp)
-                else:
-                    raise ValueError(f"Invalid matrix_side value: {matrix_side}")
 
-            elif "T" in grad:
+            elif isinstance(grad, np.ndarray) and grad.dtype == object and len(grad) > 0 and "T" in grad:
                 input.backprop(bp.T)
             # CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
                 input.backprop(grad @ bp[start_index:end_index])
             else:
-                input.backprop(grad * bp)
+                # Ensure bp and grad are arrays for proper broadcasting
+                bp_array = np.asarray(bp)
+                grad_array = np.asarray(grad)
+                # For sum operation: if bp is scalar and grad is array, broadcast bp to grad's shape
+                result = grad_array * bp_array
+                input.backprop(result)
 
     def backward(self, debug=False):
         # self.backprop(np.array([1]))
@@ -100,12 +116,13 @@ class Tensor:
         return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}], custom_name=f"({self.custom_name} ** {power})")
 
     def __neg__(self: 'Tensor') -> 'Tensor':
-        result = Tensor(-1.0) * self
-        result.custom_name = f"-({self.custom_name})"
-        return result
+        return Tensor(-self.v, lambda: [{"input": self, "grad": -np.ones_like(self.v)}], custom_name=f"-({self.custom_name})")
 
     def __sub__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return self + (-other)
+        return Tensor(self.v - other.v, lambda: [
+            {"input": self, "grad": np.ones_like(self.v)}, 
+            {"input": other, "grad": -np.ones_like(other.v)}
+        ], custom_name=f"({self.custom_name} - {other.custom_name})")
 
     def __truediv__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return self * other ** -1
@@ -125,10 +142,11 @@ class Tensor:
     
     def exp(self):
         ev = np.exp(self.v)
-        return Tensor(ev, lambda: [(self, ev)])
+        return Tensor(ev, lambda: [{"input" : self, "grad" : ev}])
 
     def log(self):
-        return Tensor(np.log(self.v), lambda: [(self, self.v ** -1)])
+        return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}])
+
     def relu(self):
         return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
     
@@ -139,57 +157,50 @@ class Tensor:
             self._grad = 0.0
 
 if __name__ == "__main__":
-    # a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
-    # b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
-    # bias = Tensor(np.ones_like(b.v@a.v)*2)
-
-    # a = Tensor(np.array([[1, 2],
-    #                      [3, 4],
-    #                      [5, 6]]))
-    # b = Tensor(np.array([[7, 8, 9],
-    #                      [10, 11, 12],
-    #                      [13, 14, 15]]))
-    # bias = Tensor(np.ones_like(b.v @ a.v) * 2)
+    a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
+    b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
+    bias = Tensor(np.ones_like(b.v@a.v)*2)
 
 
-    # print("a", a)
-    # print("b", b)
-    # print("bias", bias)
+    print("a", a)
+    print("b", b)
+    print("bias", bias)
 
-    # f = b @ a + bias
-    # # print("f", f)
-    
-    # f = f.relu()
+    f = b @ a + bias
     # print("f", f)
+    
+    f = f
+    print("f", f)
 
-    # f.backward()
+    f.backward(debug=True)
+    
 
-    # print("a grad", a.grad)
-    # print("b grad", b.grad)
-    # print("bias grad", bias.grad)
+    print("a grad", a.grad)
+    print("b grad", b.grad)
+    print("bias grad", bias.grad)
 
 
-    a = Tensor(np.array([1],dtype=float), custom_name="a")
-    b = Tensor(np.array([2],dtype=float), custom_name="b")
-    c = Tensor(np.array([1],dtype=float), custom_name="c")
-    d = Tensor(np.array([2],dtype=float), custom_name="d")
-    e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
+    # a = Tensor(np.array([1],dtype=float), custom_name="a")
+    # b = Tensor(np.array([2],dtype=float), custom_name="b")
+    # c = Tensor(np.array([1],dtype=float), custom_name="c")
+    # d = Tensor(np.array([2],dtype=float), custom_name="d")
+    # e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
 
-    ab = a * b
-    cd = c * d
+    # ab = a * b
+    # cd = c * d
 
-    f = ab.cat([cd], 0)
+    # f = ab.cat([cd], 0)
 
-    # f = Tensor(np.array([3, 3],dtype=float), custom_name="f")
+    # # f = Tensor(np.array([3, 3],dtype=float), custom_name="f")
 
-    g = f @ e
-    # h = g.T
-    g.backward()
-    print(ab)
-    print(cd)
-    print(f)
-    print(e)
-    print(g)
+    # g = f @ e
+    # # h = g.T
+    # g.backward()
+    # print(ab)
+    # print(cd)
+    # print(f)
+    # print(e)
+    # print(g)
 
     #%%
     # import numpy as np

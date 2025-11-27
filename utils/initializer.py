@@ -1,27 +1,35 @@
 import random
 import numpy as np
-from tensor import Tensor
+from utils.cn import Parameter
+from utils.tensor import Tensor
+from abc import ABC, abstractmethod
 
-class Initializer:
-
+class Initializer(ABC):
+  @abstractmethod
   def init_weights(self, n_in, n_out):
-    raise NotImplementedError
+    pass
 
-  def init_bias(self, n_out):
-    raise NotImplementedError
+  # @abstractmethod
+  # def init_bias(self, n_out):
+  #   pass
 
 
 class NormalInitializer(Initializer):
 
-  def __init__(self, mean=0, std=0.1):
+  def __init__(self, mean=0, std=None):
     self.mean = mean
-    self.std = std
+    self.std = std  # If None, will use Xavier initialization
 
   def init_weights(self, n_in, n_out):
-    return Tensor(np.random.normal(self.mean, self.std, size=(n_in,n_out)))
+    # Use Xavier initialization if std not provided
+    if self.std is None:
+      std = np.sqrt(2.0 / (n_in + n_out))  # Xavier/Glorot initialization
+    else:
+      std = self.std
+    return Parameter(np.random.normal(self.mean, std, size=(n_in,n_out)))
 
   def init_bias(self, n_out, batch_size):
-    return Tensor(np.zeros([n_out, batch_size]))
+    return Parameter(np.zeros([n_out, batch_size]))
 
 class ConstantInitializer(Initializer):
 
@@ -30,7 +38,7 @@ class ConstantInitializer(Initializer):
     self.bias = bias
 
   def init_weights(self, n_in, n_out):
-    return Tensor(np.ones([n_in,n_out]) * self.weight)
+    return Parameter(np.ones([n_in,n_out]) * self.weight)
 
-  def init_bias(self, n_out, batch_size):
-    return Tensor(np.ones([n_out, batch_size]) * self.bias)
+  # def init_bias(self, n_out, batch_size):
+  #   return Parameter(np.ones([n_out, batch_size]) * self.bias)
