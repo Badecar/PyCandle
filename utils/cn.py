@@ -11,7 +11,7 @@ class Parameter(Tensor):
 
 class Module(ABC):
     def __init__(self):
-        self.train_mode = False #NOTE: Not used atm, but needs to be used when we implement batchnorm
+        self.train_mode = True #NOTE: Not used atm, but needs to be used when we implement batchnorm
 
     @abstractmethod
     def forward(self, x: Tensor) -> Tensor:
