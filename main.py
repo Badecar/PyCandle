@@ -37,20 +37,21 @@ class Model(Module):
         super().__init__()
 
         self.layers = Sicquential(
-            Linear(n_in=in_channels, n_out=600),
+            Linear(n_in=in_channels, n_out=600, bias=True),
             ReLU(),
-            Linear(n_in=600, n_out= 600),
+            Linear(n_in=600, n_out= 600, bias=True),
             ReLU(),
-            Linear(n_in=600, n_out=120),
+            Linear(n_in=600, n_out=120, bias=True),
             ReLU(),
-            Linear(n_in=120, n_out=num_classes)
+            Linear(n_in=120, n_out=num_classes, bias=True)
         )
     
     def forward(self, x):
         return self.layers(x)
 
 model = Model(in_channels=28*28, num_classes=10)
-optimizer = SGD(model.parameters(), lr=LEARNING_RATE)
+
+optimizer = ADAM(model.parameters(), lr=LEARNING_RATE)
 
 model, loss_list = train_model(model, train_loader, optimizer, cross_entropy_loss, NUM_EPOCHS, use_wandb=use_wandb)
 
