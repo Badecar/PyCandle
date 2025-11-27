@@ -37,9 +37,9 @@ def eval_model(model:Module, loader:DataLoader , plot_confusion_matrix = False):
     model.eval()
     metrics = {
         'accuracy': 0,
-        'f1 scores': [],
-        'f1 mean score': 0,
-        'cross entropy': 0,
+        'f1_classes': [],
+        'f1_mean': 0,
+        'cross_entropy': 0,
         'confusion_matrix': []      
     }
     
@@ -52,11 +52,11 @@ def eval_model(model:Module, loader:DataLoader , plot_confusion_matrix = False):
             y_batch = np.argmax(logits.v, axis=1)
             y_pred_batch = np.argmax(Y.v, axis=1)
 
-            metrics['cross entropy'] += float(cross_entropy_loss(Y, logits).v) * 1/len(loader)
+            metrics['cross_entropy'] += float(cross_entropy_loss(Y, logits).v) * 1/len(loader)
 
             y_pred.extend(y_pred_batch)
             y.extend(y_batch)
-            
+
     y_pred = np.array(y_pred)
     y = np.array(y)
 
@@ -80,8 +80,8 @@ def eval_model(model:Module, loader:DataLoader , plot_confusion_matrix = False):
         f1 = float(2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0)
         f1_scores.append(f1)
 
-    metrics['f1 scores'] = f1_scores
-    metrics['f1 mean score'] = float(np.mean(f1_scores))
+    metrics['f1_classes'] = f1_scores
+    metrics['f1_mean'] = float(np.mean(f1_scores))
     metrics['confusion_matrix'] = confusion_matrix
 
     if plot_confusion_matrix:
