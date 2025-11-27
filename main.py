@@ -5,7 +5,7 @@ from utils.loss_function import cross_entropy_loss
 from utils.cn import *
 from utils.tensor import Tensor
 import numpy as np
-from utils.optimizer import SGD
+from utils.optimizer import SGD, SGDMomentum, ADAM
 import matplotlib.pyplot as plt
 import wandb
 
