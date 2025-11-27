@@ -55,8 +55,8 @@ optimizer = ADAM(model.parameters(), lr=LEARNING_RATE)
 
 model, loss_list = train_model(model, train_loader, optimizer, cross_entropy_loss, NUM_EPOCHS, use_wandb=use_wandb)
 
-acc = eval_model(model, test_loader)
-print("acc=", acc)
+metrics = eval_model(model, test_loader , plot_confusion_matrix=True)
+print("metrics=", metrics)
 
 plt.plot(loss_list)
 plt.show()
