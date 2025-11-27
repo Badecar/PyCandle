@@ -1,28 +1,29 @@
-# Copy and pasted from https://github.com/rasmusbergpalm/nanograd/blob/3a1bf9e9e724da813bfccf91a6f309abdade9f39/nanograd.py
-
-from math import exp, log
 from typing import Sequence
 import numpy as np
-from numpy.linalg import tensorsolve
+from utils import candle
+
 
 class Tensor:
     """
     A tensor which holds a array and enables gradient computations.
     """
 
-    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None):
-        #assert type(val) == np.ndarray
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad = True):
         self.v = np.array(val, dtype=float)
         self.grad_fn = grad_fn
         self._grad = None
         self.custom_name = custom_name
+        self.requires_grad = requires_grad and candle.is_grad_enabled()
+
+        if not self.requires_grad:
+            self.grad_fn = lambda: []
 
         if type(self.v) != np.ndarray:
             self.v = np.array(self.v)
 
     @property
     def T(self):
-        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))])
+        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))], requires_grad=self.requires_grad)
     
     @property
     def grad(self):
@@ -44,7 +45,7 @@ class Tensor:
             for i in range(len(self.v.shape)):
                 if self.v.shape[i] == 1 and bp.shape[i] > 1:
                     bp = bp.sum(axis=i, keepdims=True)
-        
+
         self._grad += bp
         for grad_fn in self.grad_fn():
             input: Tensor = grad_fn["input"]
@@ -95,34 +96,40 @@ class Tensor:
             }
             outputs.append(output)
             current_index += part.v.shape[axis]
-        return Tensor(np.concatenate([o.v for o in all], axis=axis), lambda: outputs, custom_name=f"cat({', '.join([o.custom_name for o in all])})")
+        requires_grad = all([o.requires_grad for o in all])
+        return Tensor(
+            np.concatenate([o.v for o in all], axis=axis),
+            lambda: outputs,
+            custom_name=f"cat({', '.join([o.custom_name for o in all])})",
+            requires_grad=requires_grad
+        )
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         #assert self.v.shape != other.v.shape ""
-        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})")
-    
+        return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
+
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"({self.custom_name} * {other.custom_name})")
+        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"({self.custom_name} * {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if len(self.v.shape) == 1 and len(other.v.shape) == 1:
             return self.__mul__(other)
         if self.v.shape[-1] != other.v.shape[-2]:
             raise ValueError(f"Shape mismatch: {self.v.shape} @ {other.v.shape}")
-        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}], custom_name=f"({self.custom_name} @ {other.custom_name})")
+        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}], custom_name=f"({self.custom_name} @ {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
-        return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}], custom_name=f"({self.custom_name} ** {power})")
+        return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}], custom_name=f"({self.custom_name} ** {power})", requires_grad=self.requires_grad)
 
     def __neg__(self: 'Tensor') -> 'Tensor':
-        return Tensor(-self.v, lambda: [{"input": self, "grad": -np.ones_like(self.v)}], custom_name=f"-({self.custom_name})")
+        return Tensor(-self.v, lambda: [{"input": self, "grad": -np.ones_like(self.v)}], custom_name=f"-({self.custom_name})", requires_grad=self.requires_grad)
 
     def __sub__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return Tensor(self.v - other.v, lambda: [
             {"input": self, "grad": np.ones_like(self.v)}, 
             {"input": other, "grad": -np.ones_like(other.v)}
-        ], custom_name=f"({self.custom_name} - {other.custom_name})")
+        ], custom_name=f"({self.custom_name} - {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
 
     def __truediv__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return self * other ** -1
@@ -138,17 +145,17 @@ class Tensor:
     
     def sum(self, axis=None, keepdims=False):
         result = np.sum(self.v, axis=axis, keepdims=keepdims)
-        return Tensor(result, lambda: [{"input": self, "grad": np.ones_like(self.v)}])
+        return Tensor(result, lambda: [{"input": self, "grad": np.ones_like(self.v)}], requires_grad=self.requires_grad)
     
     def exp(self):
         ev = np.exp(self.v)
-        return Tensor(ev, lambda: [{"input" : self, "grad" : ev}])
+        return Tensor(ev, lambda: [{"input" : self, "grad" : ev}], requires_grad=self.requires_grad)
 
     def log(self):
-        return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}])
+        return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
 
     def relu(self):
-        return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}])
+        return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}], requires_grad=self.requires_grad)
     
     def zero_grad(self,grad_none=False):
         if grad_none:

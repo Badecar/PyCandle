@@ -18,7 +18,6 @@ class Optimizer(ABC):
     def step(self):
         pass
 
-class Optimizer():
 
 class SGD(Optimizer):
     def __init__(self, params, lr=0.001):
