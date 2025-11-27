@@ -4,6 +4,7 @@
 # from loss_function import cross_entropy_loss
 # from initializer import NormalInitializer
 from abc import ABC, abstractmethod
+import numpy as np
 
 class Optimizer(ABC):
     def __init__(self, params, lr=0.001):
@@ -27,6 +28,41 @@ class SGD(Optimizer):
         for param in self.params:
             if param.grad is not None:
                 param.v = param.v - self.lr * param.grad
+
+class SGDMomentum(Optimizer):
+    def __init__(self, params, lr=0.001, beta = 0.9):
+        super().__init__(params, lr)
+        self.beta = beta
+
+    def step(self):
+        for param in self.params:
+            if param.grad is not None:
+                param.m = param.m * self.beta + (1-self.beta) * param.grad
+                param.v = param.v - param.m * self.lr
+
+class ADAM(Optimizer):
+    def __init__(self, params, lr=0.001, beta = 0.9, gamma = 0.999):
+        super().__init__(params, lr)
+        self.beta = beta
+        self.gamma = gamma
+        self.t = 0
+        self.eps = 1.e-8
+
+
+    def step(self):
+        self.t += 1
+        for param in self.params:
+            if param.grad is None:
+                continue
+            
+            param.m =  param.m * self.beta + (1-self.beta) * param.grad
+            param.vel = param.vel * self.gamma + (1-self.gamma) * param.grad**2
+
+            m_tilde = param.m / (1 - self.beta**self.t)
+            vel_tilde = param.vel / (1 - self.gamma**self.t)
+
+            param.v = param.v - self.lr * m_tilde /(np.sqrt(vel_tilde) + self.eps)
+
 
 # if __name__ == "__main__":
     
