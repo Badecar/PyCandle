@@ -5,7 +5,7 @@ from utils.loss_function import cross_entropy_loss
 from utils.cn import *
 from utils.tensor import Tensor
 from utils import candle
-from training.traning import train_model, eval_model
+from training.traning import train_model, eval_model, get_acc
 import numpy as np
 from utils.optimizer import SGD, SGDMomentum, ADAM
 import matplotlib.pyplot as plt
@@ -48,15 +48,17 @@ class Model(Module):
     
     def forward(self, x):
         return self.layers(x)
+        
 
 model = Model(in_channels=28*28, num_classes=10)
-
 optimizer = ADAM(model.parameters(), lr=LEARNING_RATE)
-
 model, loss_list = train_model(model, train_loader, optimizer, cross_entropy_loss, NUM_EPOCHS, use_wandb=use_wandb)
 
-metrics = eval_model(model, test_loader , plot_confusion_matrix=True)
+metrics = eval_model(model, test_loader, plot_confusion_matrix=False)
 print("metrics=", metrics)
+
+acc = get_acc(model, test_loader)
+print("acc=", acc)
 
 plt.plot(loss_list)
 plt.show()

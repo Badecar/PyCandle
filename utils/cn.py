@@ -4,8 +4,8 @@ from typing import Sequence
 import numpy as np
 
 class Parameter(Tensor):
-    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None):
-        super().__init__(val, grad_fn, custom_name)
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad=True):
+        super().__init__(val, grad_fn, custom_name, requires_grad=requires_grad)
         self.m = 0
         self.vel = 0
 
