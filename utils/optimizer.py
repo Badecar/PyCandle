@@ -17,9 +17,7 @@ class Optimizer(ABC):
     @abstractmethod
     def step(self):
         pass
-
-class Optimizer():
-
+    
 class SGD(Optimizer):
     def __init__(self, params, lr=0.001):
         super().__init__(params, lr)
