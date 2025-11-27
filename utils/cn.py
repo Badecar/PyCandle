@@ -10,6 +10,9 @@ class Parameter(Tensor):
         self.vel = 0
 
 class Module(ABC):
+    def __init__(self):
+        self.train_mode = False #NOTE: Not used atm, but needs to be used when we implement batchnorm
+
     @abstractmethod
     def forward(self, x: Tensor) -> Tensor:
         pass
@@ -28,6 +31,13 @@ class Module(ABC):
                 for item in attr:
                     params.extend(item.parameters())
         return params
+
+    def eval(self):
+        self.train_mode = False
+    
+    def train(self):
+        self.train_mode = True
+
 
 class Sicquential(Module):
     def __init__(self, *layers: Module):

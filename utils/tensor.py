@@ -109,27 +109,41 @@ class Tensor:
         return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
 
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        return Tensor(self.v * other.v, lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}], custom_name=f"({self.custom_name} * {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
+        return Tensor(self.v * other.v,
+        lambda: [{"input": self, "grad": other.v}, {"input": other, "grad": self.v}],
+        custom_name=f"({self.custom_name} * {other.custom_name})",
+        requires_grad=self.requires_grad or other.requires_grad)
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if len(self.v.shape) == 1 and len(other.v.shape) == 1:
             return self.__mul__(other)
         if self.v.shape[-1] != other.v.shape[-2]:
             raise ValueError(f"Shape mismatch: {self.v.shape} @ {other.v.shape}")
-        return Tensor(self.v @ other.v, lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}], custom_name=f"({self.custom_name} @ {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
+        return Tensor(self.v @ other.v,
+        lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}],
+        custom_name=f"({self.custom_name} @ {other.custom_name})",
+        requires_grad=self.requires_grad or other.requires_grad)
 
     def __pow__(self, power):
         assert type(power) in {float, int}, "power must be float or int"
-        return Tensor(self.v ** power, lambda: [{"input": self, "grad": power * self.v ** (power - 1)}], custom_name=f"({self.custom_name} ** {power})", requires_grad=self.requires_grad)
+        return Tensor(self.v ** power,
+        lambda: [{"input": self, "grad": power * self.v ** (power - 1)}],
+        custom_name=f"({self.custom_name} ** {power})",
+        requires_grad=self.requires_grad)
 
     def __neg__(self: 'Tensor') -> 'Tensor':
-        return Tensor(-self.v, lambda: [{"input": self, "grad": -np.ones_like(self.v)}], custom_name=f"-({self.custom_name})", requires_grad=self.requires_grad)
+        return Tensor(-self.v,
+        lambda: [{"input": self, "grad": -np.ones_like(self.v)}],
+        custom_name=f"-({self.custom_name})",
+        requires_grad=self.requires_grad)
 
     def __sub__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return Tensor(self.v - other.v, lambda: [
             {"input": self, "grad": np.ones_like(self.v)}, 
             {"input": other, "grad": -np.ones_like(other.v)}
-        ], custom_name=f"({self.custom_name} - {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
+        ],
+        custom_name=f"({self.custom_name} - {other.custom_name})",
+        requires_grad=self.requires_grad or other.requires_grad)
 
     def __truediv__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return self * other ** -1
@@ -155,7 +169,9 @@ class Tensor:
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
 
     def relu(self):
-        return Tensor(np.maximum(self.v, 0.0), lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}], requires_grad=self.requires_grad)
+        return Tensor(np.maximum(self.v, 0.0),
+        lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}],
+        requires_grad=self.requires_grad)
     
     def zero_grad(self,grad_none=False):
         if grad_none:

@@ -64,6 +64,7 @@ class FashionMNISTDataset(Dataset):
 
 
 train_dataset = FashionMNISTDataset(X_train_full, y_train_full)
+test_dataset = FashionMNISTDataset(X_test, y_test)
 #%%
 
 class DataLoader():
