@@ -93,7 +93,7 @@ class DataLoader():
   def __next__(self) -> tuple[Tensor, Tensor]:
     if self.batch_idx >= len(self):
       raise StopIteration
-    batch_indices = self.indices[self.batch_idx * self.batch_size:(self.batch_idx + 1) * self.batch_size]
+    batch_indices = self.indices[self.batch_idx * self.batch_size : (self.batch_idx + 1) * self.batch_size]
     x = Tensor([self.dataset[i][0].v for i in batch_indices])
     y = Tensor([self.dataset[i][1].v for i in batch_indices])
     self.batch_idx += 1

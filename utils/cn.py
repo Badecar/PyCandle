@@ -25,7 +25,6 @@ class Module(ABC):
             if isinstance(attr, Sequence) and all(isinstance(item, Module) for item in attr):
                 for item in attr:
                     params.extend(item.parameters())
-                
         return params
 
 class Sicquential(Module):

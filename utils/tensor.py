@@ -64,8 +64,6 @@ class Tensor:
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
                     input.backprop(grad @ bp)
-                else:
-                    raise ValueError(f"Invalid matrix_side value: {matrix_side}")
 
             elif isinstance(grad, np.ndarray) and grad.dtype == object and len(grad) > 0 and "T" in grad:
                 input.backprop(bp.T)
@@ -159,57 +157,50 @@ class Tensor:
             self._grad = 0.0
 
 if __name__ == "__main__":
-    # a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
-    # b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
-    # bias = Tensor(np.ones_like(b.v@a.v)*2)
-
-    # a = Tensor(np.array([[1, 2],
-    #                      [3, 4],
-    #                      [5, 6]]))
-    # b = Tensor(np.array([[7, 8, 9],
-    #                      [10, 11, 12],
-    #                      [13, 14, 15]]))
-    # bias = Tensor(np.ones_like(b.v @ a.v) * 2)
+    a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
+    b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
+    bias = Tensor(np.ones_like(b.v@a.v)*2)
 
 
-    # print("a", a)
-    # print("b", b)
-    # print("bias", bias)
+    print("a", a)
+    print("b", b)
+    print("bias", bias)
 
-    # f = b @ a + bias
-    # # print("f", f)
-    
-    # f = f.relu()
+    f = b @ a + bias
     # print("f", f)
+    
+    f = f
+    print("f", f)
 
-    # f.backward()
+    f.backward(debug=True)
+    
 
-    # print("a grad", a.grad)
-    # print("b grad", b.grad)
-    # print("bias grad", bias.grad)
+    print("a grad", a.grad)
+    print("b grad", b.grad)
+    print("bias grad", bias.grad)
 
 
-    a = Tensor(np.array([1],dtype=float), custom_name="a")
-    b = Tensor(np.array([2],dtype=float), custom_name="b")
-    c = Tensor(np.array([1],dtype=float), custom_name="c")
-    d = Tensor(np.array([2],dtype=float), custom_name="d")
-    e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
+    # a = Tensor(np.array([1],dtype=float), custom_name="a")
+    # b = Tensor(np.array([2],dtype=float), custom_name="b")
+    # c = Tensor(np.array([1],dtype=float), custom_name="c")
+    # d = Tensor(np.array([2],dtype=float), custom_name="d")
+    # e = Tensor(np.array([3, 3],dtype=float), custom_name="e")
 
-    ab = a * b
-    cd = c * d
+    # ab = a * b
+    # cd = c * d
 
-    f = ab.cat([cd], 0)
+    # f = ab.cat([cd], 0)
 
-    # f = Tensor(np.array([3, 3],dtype=float), custom_name="f")
+    # # f = Tensor(np.array([3, 3],dtype=float), custom_name="f")
 
-    g = f @ e
-    # h = g.T
-    g.backward()
-    print(ab)
-    print(cd)
-    print(f)
-    print(e)
-    print(g)
+    # g = f @ e
+    # # h = g.T
+    # g.backward()
+    # print(ab)
+    # print(cd)
+    # print(f)
+    # print(e)
+    # print(g)
 
     #%%
     # import numpy as np

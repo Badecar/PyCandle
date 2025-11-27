@@ -28,8 +28,8 @@ class NormalInitializer(Initializer):
       std = self.std
     return Parameter(np.random.normal(self.mean, std, size=(n_in,n_out)))
 
-  # def init_bias(self, n_out, batch_size):
-  #   return Parameter(np.zeros([n_out, batch_size]))
+  def init_bias(self, n_out, batch_size):
+    return Parameter(np.zeros([n_out, batch_size]))
 
 class ConstantInitializer(Initializer):
 
