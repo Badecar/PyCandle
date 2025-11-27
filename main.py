@@ -13,7 +13,7 @@ import wandb
 
 # --- HYPERPARAMETERS ---
 LEARNING_RATE = 0.001
-BATCH_SIZE = 32
+BATCH_SIZE = 256
 NUM_EPOCHS = 1
 use_wandb = False
 
