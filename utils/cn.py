@@ -6,6 +6,8 @@ import numpy as np
 class Parameter(Tensor):
     def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None):
         super().__init__(val, grad_fn, custom_name)
+        self.m = 0
+        self.vel = 0
 
 class Module(ABC):
     @abstractmethod
