@@ -29,8 +29,8 @@ def train_model(model:Module, loader, optim, criterion, epochs, use_wandb):
             if use_wandb:
                 wandb.log({"train/loss": loss.v})
             
-            if i >= 200:
-                break
+            # if i >= 200:
+            #     break
     
     return model, loss_list
 
