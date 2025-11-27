@@ -28,7 +28,6 @@ class Module(ABC):
                 for item in attr:
                     params.extend(item.parameters())
         return params
-
 class Sicquential(Module):
     def __init__(self, *layers: Module):
         super().__init__()
@@ -45,14 +44,11 @@ class ReLU(Module):
         return x
 
 class Linear(Module):
-    def __init__(self, n_in:int, n_out:int, initializer=None):
+    def __init__(self, n_in:int, n_out:int, bias=False):
         super().__init__()
-        if initializer == None:
-            from utils.initializer import NormalInitializer
-            initializer = NormalInitializer()
-        self.initializer = initializer
-        self.parameter = self.initializer.init_weights(n_in=n_in, n_out=n_out)
-        self.bias = Parameter(np.zeros([32, n_out])) #TODO: Fix this with broadcasting
+        k = 1 / n_in
+        self.parameter = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=[n_in, n_out]))
+        self.bias = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=[n_out]))
 
     def forward(self, x: Tensor) -> Tensor:
         x = x @ self.parameter + self.bias

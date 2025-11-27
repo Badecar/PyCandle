@@ -1,18 +1,12 @@
 import random
 import numpy as np
 from utils.cn import Parameter
-from utils.tensor import Tensor
 from abc import ABC, abstractmethod
 
 class Initializer(ABC):
   @abstractmethod
   def init_weights(self, n_in, n_out):
     pass
-
-  # @abstractmethod
-  # def init_bias(self, n_out):
-  #   pass
-
 
 class NormalInitializer(Initializer):
 
