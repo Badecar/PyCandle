@@ -37,6 +37,7 @@ class Model(Module):
         super().__init__()
 
         self.layers = Sicquential(
+            Flatten(),
             Linear(n_in=in_channels, n_out=600, bias=True),
             ReLU(),
             Linear(n_in=600, n_out= 600, bias=True),

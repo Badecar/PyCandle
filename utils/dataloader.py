@@ -27,8 +27,11 @@ class_names = [
     "Ankle boot"   
 ]
 
-X_train_full = train_df.drop("label", axis=1).values / 255.0  # Normalize to [0, 1]
-y_train_full = np.eye(len(class_names))[train_df["label"].values]
+X_train = train_df.drop("label", axis=1).values / 255.0  # Normalize to [0, 1]
+y_train = np.eye(len(class_names))[train_df["label"].values]
+
+# print("Train data shape:", X_train.shape)
+# print("Test data shape:", y_train.shape)
 
 X_test = test_df.drop("label", axis=1).values / 255.0  # Normalize to [0, 1]
 y_test = np.eye(len(class_names))[test_df["label"].values]
@@ -50,20 +53,21 @@ class Dataset(ABC):
 
 class FashionMNISTDataset(Dataset):
   def __init__(self, X, y):
-    self.X = X
+    self.x = X
     self.y = y
 
   def __len__(self):
-    return len(self.X)
+    return len(self.x)
 
   def __getitem__(self, idx):
-    return Tensor(self.X[idx]), Tensor(self.y[idx])
+    self.x = self.x.reshape(-1, 1, 28, 28) #(batch, channel, H, W) -1 means automatically calculate that dim
+    return Tensor(self.x[idx]), Tensor(self.y[idx], requires_grad=False)
 
   def __repr__(self):
-    return f"FashionMNISTDataset(X={self.X.shape}, y={self.y.shape})"
+    return f"FashionMNISTDataset(X={self.x.shape}, y={self.y.shape})"
 
 
-train_dataset = FashionMNISTDataset(X_train_full, y_train_full)
+train_dataset = FashionMNISTDataset(X_train, y_train)
 test_dataset = FashionMNISTDataset(X_test, y_test)
 #%%
 
@@ -95,23 +99,25 @@ class DataLoader():
     if self.batch_idx >= len(self):
       raise StopIteration
     batch_indices = self.indices[self.batch_idx * self.batch_size : (self.batch_idx + 1) * self.batch_size]
-    x = Tensor([self.dataset[i][0].v for i in batch_indices])
-    y = Tensor([self.dataset[i][1].v for i in batch_indices])
+    x = Tensor([self.dataset[i][0].v for i in batch_indices], requires_grad=False)
+    y = Tensor([self.dataset[i][1].v for i in batch_indices], requires_grad=False)
     self.batch_idx += 1
     return x, y
 
   def __repr__(self):
     return f"DataLoader(dataset={self.dataset}, batch_size={self.batch_size}, shuffle={self.shuffle}, drop_last={self.drop_last})"
 
+
+
+
+# %%
 # train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, drop_last=False)
 
-# for batch in train_loader:
-#   break
-#%%
 # for batch in train_loader:
 #   print(batch)
 #   break
 
 # x, y = next(train_loader)
 # x.v.shape, y.v.shape
-#%%
+# %%
+

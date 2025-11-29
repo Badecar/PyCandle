@@ -23,11 +23,15 @@ class Tensor:
 
     @property
     def T(self):
-        return Tensor(self.v.T, lambda: [(self, np.array(["T"]))], requires_grad=self.requires_grad)
+        return Tensor(self.v.T, lambda: [{"input": self, "grad": None, "T": "yes"}], requires_grad=self.requires_grad)
     
     @property
     def grad(self):
         return self._grad
+
+    @property
+    def shape(self):
+        return self.v.shape
 
     def backprop(self, bp, debug=False):
         if self._grad is None:
@@ -35,15 +39,15 @@ class Tensor:
 
         # Handle broadcasting: if bp shape doesn't match self.v shape, sum to reduce
         bp = np.asarray(bp)
-        if bp.shape != self.v.shape:
+        if bp.shape != self.shape:
             # Sum over extra leading dimensions
-            ndim_diff = len(bp.shape) - len(self.v.shape)
+            ndim_diff = len(bp.shape) - len(self.shape)
             for _ in range(ndim_diff):
                 bp = bp.sum(axis=0)
             
             # Sum over dimensions that were broadcast (size 1 -> size N)
-            for i in range(len(self.v.shape)):
-                if self.v.shape[i] == 1 and bp.shape[i] > 1:
+            for i in range(len(self.shape)):
+                if self.shape[i] == 1 and bp.shape[i] > 1:
                     bp = bp.sum(axis=i, keepdims=True)
 
         self._grad += bp
@@ -54,6 +58,8 @@ class Tensor:
             start_index = grad_fn.get("start_index", None)
             end_index = grad_fn.get("end_index", None)
             matrix_side = grad_fn.get("matrix", None)
+            transposed = grad_fn.get("T", None)
+            orig_shape = grad_fn.get("orig_shape", None)
 
             if debug:
                 print("custom_name", self.custom_name)
@@ -65,9 +71,14 @@ class Tensor:
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
                     input.backprop(grad @ bp)
-
-            elif isinstance(grad, np.ndarray) and grad.dtype == object and len(grad) > 0 and "T" in grad:
+            
+            elif transposed != None:
                 input.backprop(bp.T)
+
+            elif orig_shape != None:
+                bp = bp.reshape(orig_shape)
+                input.backprop(bp)
+                
             # CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
                 input.backprop(grad @ bp[start_index:end_index])
@@ -82,6 +93,12 @@ class Tensor:
     def backward(self, debug=False):
         # self.backprop(np.array([1]))
         self.backprop(np.ones_like(self.v), debug=debug)
+    
+    def zero_grad(self,grad_none=False):
+        if grad_none:
+            self._grad = None
+        else:
+            self._grad = 0.0
 
     def cat(self, others: Sequence['Tensor'], axis: int):
         all = [self] + others
@@ -92,10 +109,10 @@ class Tensor:
                 "input": part,
                 "grad": np.ones_like(part.v),
                 "start_index": current_index,
-                "end_index": current_index + part.v.shape[axis]
+                "end_index": current_index + part.shape[axis]
             }
             outputs.append(output)
-            current_index += part.v.shape[axis]
+            current_index += part.shape[axis]
         requires_grad = all([o.requires_grad for o in all])
         return Tensor(
             np.concatenate([o.v for o in all], axis=axis),
@@ -104,8 +121,54 @@ class Tensor:
             requires_grad=requires_grad
         )
 
+    def flatten(self, start_dim: int = 0, end_dim: int = -1):
+        shape = self.shape
+
+        if start_dim < 0:
+            start_dim = len(shape) + start_dim 
+        if end_dim < 0:
+            end_dim = len(shape) + end_dim
+
+        if end_dim < start_dim:
+            raise ValueError(f"end_dim of {end_dim} must be bigger than start_dim of {start_dim}")
+        
+        # Compose new shape
+        start_shape = shape[:start_dim]
+        flatten_dim = np.prod(shape[start_dim:end_dim+1])
+        end_shape = shape[end_dim+1:]
+
+        final_shape = start_shape + (flatten_dim,) + end_shape
+
+        def grad_fn():
+            return [{"input": self, "grad": None, "orig_shape": self.shape}]
+
+        flat = self.v.reshape(final_shape)
+
+        return Tensor(flat, grad_fn, requires_grad=self.requires_grad)
+    
+    def unflatten(self, unflatten_dim: int = 0, shape: tuple[int, ...] = ()):
+        orig_shape = self.shape
+        
+        if unflatten_dim < 0:
+            unflatten_dim = len(orig_shape) + unflatten_dim
+        
+        start_shape = orig_shape[:unflatten_dim]
+        mid_shape = shape
+        end_shape = orig_shape[unflatten_dim+1:]
+
+        if orig_shape[unflatten_dim] != np.prod(shape):
+            raise ValueError(f"Cannot unflatten: dimension size at unflatten_dim {unflatten_dim} is {orig_shape[unflatten_dim]}, but shape to unflatten {shape} has product {np.prod(shape)}.")
+
+        final_shape = start_shape + mid_shape + end_shape
+
+        def grad_fn():
+            return [{"input": self, "grad": None, "orig_shape": self.shape}]
+        
+        unflat = self.v.reshape(final_shape)
+        
+        return Tensor(unflat, grad_fn, requires_grad=self.requires_grad)
+
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        #assert self.v.shape != other.v.shape ""
         return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
 
     def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
@@ -115,10 +178,10 @@ class Tensor:
         requires_grad=self.requires_grad or other.requires_grad)
 
     def __matmul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
-        if len(self.v.shape) == 1 and len(other.v.shape) == 1:
+        if len(self.shape) == 1 and len(other.shape) == 1:
             return self.__mul__(other)
-        if self.v.shape[-1] != other.v.shape[-2]:
-            raise ValueError(f"Shape mismatch: {self.v.shape} @ {other.v.shape}")
+        if self.shape[-1] != other.shape[-2]:
+            raise ValueError(f"Shape mismatch: {self.shape} @ {other.shape}")
         return Tensor(self.v @ other.v,
         lambda: [{"input": self, "grad": other.v.T, "matrix": "L"}, {"input": other, "grad": self.v.T, "matrix": "R"}],
         custom_name=f"({self.custom_name} @ {other.custom_name})",
@@ -168,22 +231,25 @@ class Tensor:
     def log(self):
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
 
+    ## ACTIVATION FUNCTIONS ##
     def relu(self):
         return Tensor(np.maximum(self.v, 0.0),
         lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}],
         requires_grad=self.requires_grad)
     
-    def zero_grad(self,grad_none=False):
-        if grad_none:
-            self._grad = None
-        else:
-            self._grad = 0.0
+
 
 if __name__ == "__main__":
     a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))
+    print(a.shape)
+    a = a.flatten()
+    print(a.shape)
+    a = a.unflatten(0, (3,4))
+    print(a.shape)
+    a = a.T
+    a = a.T
     b = Tensor(np.array([[-1,-7,-3],[4,5,6]]))
     bias = Tensor(np.ones_like(b.v@a.v)*2)
-
 
     print("a", a)
     print("b", b)
@@ -195,7 +261,7 @@ if __name__ == "__main__":
     f = f
     print("f", f)
 
-    f.backward(debug=True)
+    f.backward(debug=False)
     
 
     print("a grad", a.grad)
