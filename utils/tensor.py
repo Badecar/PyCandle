@@ -8,7 +8,7 @@ class Tensor:
     A tensor which holds a array and enables gradient computations.
     """
 
-    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad = True):
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad:Bool = True):
         self.v = np.array(val, dtype=float)
         self.grad_fn = grad_fn
         self._grad = None
@@ -165,8 +165,11 @@ class Tensor:
             return [{"input": self, "grad": None, "orig_shape": self.shape}]
         
         unflat = self.v.reshape(final_shape)
-        
+
         return Tensor(unflat, grad_fn, requires_grad=self.requires_grad)
+
+    # def __getitem__(self, key): #NOTE: Log how many times this has been called and make sure backprop runs that many times before continuing
+    #     return Tensor(self.v[key], )
 
     def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         return Tensor(self.v + other.v, lambda: [{"input": self, "grad": np.ones_like(self.v)}, {"input": other, "grad": np.ones_like(other.v)}], custom_name=f"({self.custom_name} + {other.custom_name})", requires_grad=self.requires_grad or other.requires_grad)
@@ -230,6 +233,29 @@ class Tensor:
 
     def log(self):
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
+
+    def img2col(self, stride:int, kernels, padding:int, kernel_size:tuple[int,int], in_channels:int):
+        im_flat = np.zeros([kernels.v.size, self.v.size])
+        h_out = int((self.v.shape[2] + 2 * padding - kernel_size[0]) // stride + 1)
+        w_out = int((self.v.shape[3] + 2 * padding - kernel_size[1]) // stride + 1)
+        batches = int(self.v.shape[0])
+        channels = in_channels
+
+
+        start_positions = 
+
+
+        for i in range(kernels.v.size * channels): # Looping over positions in a kernel
+            for j in range(h_out * w_out * batches): # Looping over all out_pixels
+                img_nr = j // batches
+                ch = i // (h_out * w_out)
+                axis_0 = i // (kernel_size[0] - ch*kernel_size[0]) + j // (kernel_size[1] - img_nr*kernel_size[1])
+                axis_1 = i % kernel_size[1] + j % kernel_size[1]
+                im_flat[i,j] = self.v[img_nr, ch, axis_0, axis_1]
+
+        im_flat = Tensor(im_flat)
+        return im_flat
+
 
     ## ACTIVATION FUNCTIONS ##
     def relu(self):

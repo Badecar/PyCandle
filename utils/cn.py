@@ -90,41 +90,37 @@ class Conv2D(Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = num_kernels
+        self.stride = stride
+        self.use_bias = bias
+        self.padding_mode = padding_mode
+
+        # Defining kernels
         self.kernel_size = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
         kernel_shape = (num_kernels, in_channels, self.kernel_size[0], self.kernel_size[1])
         k = 1 / (in_channels * self.kernel_size[0] * self.kernel_size[1])
         self.kernels = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=kernel_shape))
-        self.stride = stride
+        
+        # Defining padding
         if isinstance(padding, str):
             if padding != 'same':
                 raise ValueError('Padding must be "same" or int')
             if self.kernel_size[0] != self.kernel_size[1]:
                 raise ValueError(f'Padding can only be "same" if kernel is square. Kernel is {self.kernel_size[0]} by {self.kernel_size[1]}')
-            self.padding
             self.padding = self.kernel_size[0] // 2
         else:
             self.padding = padding
-        self.use_bias = bias
-        self.padding_mode = padding_mode
     
     def pad(self, x:Tensor) -> Tensor:
-        x = 
+        #np.pad. Perhaps define in Tensor class
+        pass
 
-    def img2col(self, x:Tensor, stride:int):
-        im_flat = np.zeros([self.kernels.v.size, x.v.size])
-        h_out = int((x.v.shape[2] + 2 * self.padding - self.kernel_size[0]) // self.stride + 1)
-        w_out = int((x.v.shape[3] + 2 * self.padding - self.kernel_size[1]) // self.stride + 1)
-        batches = int(x.v.shape[0])
-        channels = self.in_channels
+    def forward(self, x:Tensor) -> Tensor:
+        col = x.img2col(
+            stride=self.stride,
+            kernels=self.kernels,
+            padding=self.padding,
+            kernel_size=self.kernel_size,
+            in_channels=self.in_channels)
+        kernel_matrix = self.kernels.flatten(start_dim=1)
+        return kernel_matrix @ col #Boom!
 
-        for i in range(self.kernels.v.size * channels):
-            for j in range(h_out * w_out * batches):
-                img_nr = j // batches
-                ch = i // (h_out * w_out)
-                axis_0 = i // (self.kernel_size[0] * (ch+1))
-                axis_1 = j // (self.kernel_size[1] * (img_nr+1))
-                im_flat[i,j] = x.v[img_nr, ch, axis_0, axis_1]
-
-        im_flat = Tensor(im_flat)
-        return im_flat
-    
