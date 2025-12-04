@@ -9,10 +9,10 @@ from utils.tensor import Tensor
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def train_model(model:Module, loader, optim, criterion, epochs, use_wandb):
-    model.train()
+def train_model(model:Module, loader, val_loader, optim, criterion, epochs, use_wandb):
     loss_list = []
-    for _ in range(epochs):
+    for epoch in range(epochs):
+        model.train()
         for i, batch in enumerate(loader):
             x, y = batch
 
@@ -21,11 +21,27 @@ def train_model(model:Module, loader, optim, criterion, epochs, use_wandb):
             loss.backward()
             optim.step()
             optim.zero_grad()
-            print(f"Batch {i}, Loss: {loss.v:.4f}")
+            
+            # Calculate training accuracy
+            y_true = np.argmax(y.v, axis=1)
+            y_pred = np.argmax(output.v, axis=1)
+            acc = (y_true == y_pred).sum() / len(y_true)
+
+            print(f"Epoch {epoch}, Batch {i}, Loss: {loss.v:.4f}, Acc: {acc:.4f}")
             loss_list.append(loss.v)
 
             if use_wandb:
-                wandb.log({"train/loss": loss.v})
+                wandb.log({"train/loss": loss.v, "train/acc": acc})
+        
+        # Validation step
+        if val_loader is not None:
+            val_metrics = eval_model(model, val_loader, plot_confusion_matrix=False)
+            print(f"Epoch {epoch} Validation: Loss: {val_metrics['cross_entropy']:.4f}, Acc: {val_metrics['accuracy']:.4f}")
+            if use_wandb:
+                wandb.log({
+                    "val/loss": val_metrics['cross_entropy'],
+                    "val/acc": val_metrics['accuracy']
+                })
     
     return model, loss_list
 

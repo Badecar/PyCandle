@@ -8,7 +8,7 @@ class Tensor:
     A tensor which holds a array and enables gradient computations.
     """
 
-    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad:Bool = True):
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad:bool = True):
         self.v = np.array(val, dtype=float)
         self.grad_fn = grad_fn
         self._grad = None
@@ -242,7 +242,7 @@ class Tensor:
         channels = in_channels
 
 
-        start_positions = 
+        # start_positions = 
 
 
         for i in range(kernels.v.size * channels): # Looping over positions in a kernel

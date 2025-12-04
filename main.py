@@ -14,7 +14,7 @@ import wandb
 # --- HYPERPARAMETERS ---
 LEARNING_RATE = 0.001
 BATCH_SIZE = 256
-NUM_EPOCHS = 1
+NUM_EPOCHS = 10
 use_wandb = False
 
 # Configuring wandb
@@ -53,7 +53,7 @@ class Model(Module):
 
 model = Model(in_channels=28*28, num_classes=10)
 optimizer = ADAM(model.parameters(), lr=LEARNING_RATE)
-model, loss_list = train_model(model, train_loader, optimizer, cross_entropy_loss, NUM_EPOCHS, use_wandb=use_wandb)
+model, loss_list = train_model(model, train_loader, test_loader, optimizer, cross_entropy_loss, NUM_EPOCHS, use_wandb=use_wandb)
 
 metrics = eval_model(model, test_loader, plot_confusion_matrix=False)
 print("f1 =", metrics['f1_mean'])

@@ -3,4 +3,4 @@ pandas
 kagglehub
 matplotlib
 wandb
-
+seaborn
