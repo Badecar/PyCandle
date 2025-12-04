@@ -22,8 +22,8 @@ class NormalInitializer(Initializer):
       std = self.std
     return Parameter(np.random.normal(self.mean, std, size=(n_in,n_out)))
 
-  def init_bias(self, n_out, batch_size):
-    return Parameter(np.zeros([n_out, batch_size]))
+  def init_bias(self, n_out):
+    return Parameter(np.zeros([n_out]))
 
 class ConstantInitializer(Initializer):
 
@@ -36,3 +36,16 @@ class ConstantInitializer(Initializer):
 
   # def init_bias(self, n_out, batch_size):
   #   return Parameter(np.ones([n_out, batch_size]) * self.bias)
+
+class UniformInitializer(Initializer):
+    def __init__(self):
+      pass
+
+    def init_weights(self, n_in, n_out):
+      k = 1/np.sqrt(n_in)
+      return Parameter(np.random.uniform(-k, k, size=(n_in, n_out)))
+
+    def init_bias(self, n_out):
+      k = 1/np.sqrt(n_out)  
+      return Parameter(np.random.uniform(-k, k, size=(n_out)))
+      return Parameter(np.random.uniform(-k, k, size=(n_out)))

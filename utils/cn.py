@@ -74,12 +74,22 @@ class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.relu()
 
-class Linear(Module):
-    def __init__(self, n_in:int, n_out:int, bias=False):
+class Sigmoid(Module):
+    def __init__(self):
         super().__init__()
-        k = 1 / n_in
-        self.parameter = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=[n_in, n_out])) # TODO: Move this and bias into an initializer
-        self.bias = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=[n_out]))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return x.sigmoid()
+
+class Linear(Module):
+    def __init__(self, n_in:int, n_out:int, bias=False, initializer=None):
+        super().__init__()
+        if initializer is None:
+            from utils.initializer import UniformInitializer
+            initializer = UniformInitializer()
+
+        self.parameter = initializer.init_weights(n_in, n_out)
+        self.bias = initializer.init_bias(n_out)
 
     def forward(self, x: Tensor) -> Tensor:
         x = x @ self.parameter + self.bias

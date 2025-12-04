@@ -263,6 +263,13 @@ class Tensor:
         lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}],
         requires_grad=self.requires_grad)
     
+    def sigmoid(self):
+        sig = 1 / (1 + np.exp(-self.v))
+        return Tensor(sig,
+        lambda: [{"input": self, "grad": sig * (1 - sig)}],
+        requires_grad=self.requires_grad)
+    
+    
 
 
 if __name__ == "__main__":
