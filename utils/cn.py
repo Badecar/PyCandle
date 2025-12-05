@@ -1,4 +1,3 @@
-from utils.initializer import NormalInitializer, UniformInitializer
 from utils.tensor import Tensor
 from abc import ABC, abstractmethod
 from typing import Sequence
@@ -83,20 +82,31 @@ class Sigmoid(Module):
         return x.sigmoid()
 
 class Linear(Module):
-    def __init__(self, n_in:int, n_out:int, bias=True, initializer:str='Uniform'):
+    def __init__(self, n_in:int, n_out:int, bias=True, initializer='Uniform'):
         super().__init__()
-        if initializer == 'Normal':
-            initializer_fn = NormalInitializer
-        elif initializer == 'Uniform':
-            initializer_fn = UniformInitializer
+        
+        # Handle both string and object initializers
+        if isinstance(initializer, str):
+            # Import here to avoid circular import
+            from utils.initializer import NormalInitializer, UniformInitializer
+            if initializer == 'Normal':
+                initializer_fn = NormalInitializer()
+            elif initializer == 'Uniform':
+                initializer_fn = UniformInitializer()
+            else:
+                raise ValueError(f"Unknown initializer: {initializer}")
         else:
-            raise ValueError(f"Unknown initializer: {initializer}")
+            # Assume it's already an initializer object
+            initializer_fn = initializer
 
-        self.parameter = initializer.init_weights(n_in, n_out)
-        self.bias = initializer.init_bias(n_out)
+        self.parameter = initializer_fn.init_weights(n_in, n_out)
+        self.bias = initializer_fn.init_bias(n_out) if bias else None
 
     def forward(self, x: Tensor) -> Tensor:
-        x = x @ self.parameter + self.bias
+        if self.bias is not None:
+            x = x @ self.parameter + self.bias
+        else:
+            x = x @ self.parameter
         return x
 
 class Conv2D(Module):

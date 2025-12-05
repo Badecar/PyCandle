@@ -20,16 +20,48 @@ This project implements a neural network from scratch for the DTU course 02456 D
 
 ### 1. Setup
 
+
+
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
 # Login to Weights & Biases
 wandb login
-
-# Verify everything works
-python quick_test.py
 ```
+
+### 2. Run the main.py file
+
+```bash
+python main.py
+```
+
+### 3. If you want to run experiments, you can do the following:
+
+**All experiments are now unified in `experiments.py`**
+
+```bash
+# Compare activation functions (ReLU vs Sigmoid)
+python experiments.py --mode compare --compare-type activation --runs 3
+
+# Compare initializers (Normal vs Uniform)
+python experiments.py --mode compare --compare-type initializer --runs 3
+
+# Run hyperparameter sweep (Bayesian optimization)
+python experiments.py --mode sweep --sweep-count 20 --sweep-method bayes
+
+# Run all comparisons
+python experiments.py --mode compare-all --runs 3
+```
+
+### 4. View Results
+
+Go to https://wandb.ai and open your project to see:
+- Real-time learning curves
+- Parameter histograms
+- Gradient norms
+- Hyperparameter sweep results
+- Parallel coordinates plots
 
 
 ## 🎓 Project Requirements
@@ -45,18 +77,29 @@ This implementation fulfills all project requirements:
 ✅ **Hyperparameter sweeps:** Random and Bayesian search ⭐  
 ✅ **Summary reports:** Comparing activations and initializations ⭐  
 
-#
-We have a FFNN class that has two parameters: num_classes and in_channels.
 
-We have a trainer where you can set:
-Num epochs
+## 📊 Experiment Features
 
-Learning rate and l2_coeff is an option for the optimizer
+The unified `experiments.py` script provides:
 
-batch_size is an option in the dataloader
+**Training with WandB Logging:**
+- Learning curves (train_loss, val_loss, accuracy, val_acc)
+- Parameter histograms (built-in + custom charts) per layer, per epoch 📊
+- Gradient histograms and norms (detect vanishing/exploding gradients) 📊
+- Weight statistics (mean, std, min, max)
+- Real-time monitoring of training progress
 
-Wa have implemented a loss function class loss, to make it able to generalize
+**Hyperparameter Sweeps:**
+- Random, Bayesian, or Grid search
+- Automatic tracking of all configurations
+- Parallel coordinates plots showing parameter relationships
+- Parameter importance rankings
 
+**Comparison Experiments:**
+- Activation functions (ReLU vs Sigmoid)
+- Initializers (Normal vs Uniform)
+- Optimizers (SGD, SGDMomentum, ADAM)
+- Multiple runs with statistical analysis
 
 ## 🛠️ Troubleshooting
 
@@ -64,7 +107,7 @@ Wa have implemented a loss function class loss, to make it able to generalize
 ```bash
 # Make sure you're in the project directory
 cd /path/to/02456_project_group60
-python quick_test.py
+python experiments.py --mode single --epochs 2
 ```
 
 **Issue: WandB not configured**
@@ -73,29 +116,21 @@ wandb login
 ```
 
 **Issue: Out of memory**
-- Reduce batch size in configurations
-- Run with fewer epochs
-- Use `--quick` mode for testing
+- Reduce batch size: `--batch-size 128` or `--batch-size 64`
+- Run with fewer epochs: `--epochs 5`
+- Reduce number of runs: `--runs 1`
 
 **Issue: Experiments too slow**
 ```bash
-# Use quick mode
-python run_all_experiments.py --quick
+# Quick test with minimal configuration
+python experiments.py --mode single --epochs 2 --batch-size 64
 
-# Or reduce counts
-python generate_summary_report.py --all --runs 1
+# Fewer comparison runs
+python experiments.py --mode compare --compare-type activation --runs 1
+
+# Smaller sweep
+python experiments.py --mode sweep --sweep-count 10
 ```
-
-See [USAGE_GUIDE.md](USAGE_GUIDE.md) for more troubleshooting tips.
-
-## 📦 Dependencies
-
-Install all:
-```bash
-pip install -r requirements.txt
-```
-
-## 🎯 Recommended Workflow
 
 ## 👥 Team
 
