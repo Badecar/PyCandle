@@ -1,3 +1,4 @@
+from utils.initializer import NormalInitializer, UniformInitializer
 from utils.tensor import Tensor
 from abc import ABC, abstractmethod
 from typing import Sequence
@@ -39,7 +40,7 @@ class Module(ABC):
         self.train_mode = True
 
 
-class Sicquential(Module):
+class Sequential(Module):
     def __init__(self, *layers: Module):
         super().__init__()
         self.layers = layers
@@ -82,11 +83,14 @@ class Sigmoid(Module):
         return x.sigmoid()
 
 class Linear(Module):
-    def __init__(self, n_in:int, n_out:int, bias=False, initializer=None):
+    def __init__(self, n_in:int, n_out:int, bias=True, initializer:str='Uniform'):
         super().__init__()
-        if initializer is None:
-            from utils.initializer import UniformInitializer
-            initializer = UniformInitializer()
+        if initializer == 'Normal':
+            initializer_fn = NormalInitializer
+        elif initializer == 'Uniform':
+            initializer_fn = UniformInitializer
+        else:
+            raise ValueError(f"Unknown initializer: {initializer}")
 
         self.parameter = initializer.init_weights(n_in, n_out)
         self.bias = initializer.init_bias(n_out)

@@ -2,14 +2,11 @@ import random
 import numpy as np
 from utils.cn import Parameter
 from abc import ABC, abstractmethod
-
 class Initializer(ABC):
   @abstractmethod
   def init_weights(self, n_in, n_out):
     pass
-
 class NormalInitializer(Initializer):
-
   def __init__(self, mean=0, std=None):
     self.mean = mean
     self.std = std  # If None, will use Xavier initialization
@@ -26,16 +23,12 @@ class NormalInitializer(Initializer):
     return Parameter(np.zeros([n_out]))
 
 class ConstantInitializer(Initializer):
-
   def __init__(self, weight=1.0, bias=0.0):
     self.weight = weight
     self.bias = bias
 
   def init_weights(self, n_in, n_out):
     return Parameter(np.ones([n_in,n_out]) * self.weight)
-
-  # def init_bias(self, n_out, batch_size):
-  #   return Parameter(np.ones([n_out, batch_size]) * self.bias)
 
 class UniformInitializer(Initializer):
     def __init__(self):
@@ -47,5 +40,4 @@ class UniformInitializer(Initializer):
 
     def init_bias(self, n_out):
       k = 1/np.sqrt(n_out)  
-      return Parameter(np.random.uniform(-k, k, size=(n_out)))
       return Parameter(np.random.uniform(-k, k, size=(n_out)))

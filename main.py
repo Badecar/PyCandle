@@ -35,7 +35,8 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, drop
 class Model(Module):
     def __init__(self, num_classes:int, in_channels:int):
         super().__init__()
-        self.layers = Sicquential(
+
+        self.layers = Sequential(
             Conv2D(in_channels=1, num_kernels=32, kernel_size=3, stride=1, padding="same"),
             ReLU(),
             Conv2D(in_channels=32, num_kernels=32, kernel_size=3, stride=1, padding="same"),

@@ -1,6 +1,4 @@
 from utils.tensor import Tensor
-from math import exp, log
-import numpy as np
 
 def cross_entropy_loss(t: Tensor, x: Tensor):
 
@@ -15,7 +13,6 @@ def cross_entropy_loss(t: Tensor, x: Tensor):
     loss = -(t * log_softmax).sum() * Tensor(1.0 / batch_size)
     
     return loss
-
 
 if __name__ == "__main__":
     # Targets (Indices: 3, 0)

@@ -21,30 +21,35 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    def __init__(self, params, lr=0.001):
+    def __init__(self, params, lr=0.001, weight_decay=0.0):
         super().__init__(params, lr)
+        self.weight_decay = weight_decay
 
     def step(self):
         for param in self.params:
             if param.grad is not None:
-                param.v = param.v - self.lr * param.grad
+                grad = param.grad + self.weight_decay * param.v
+                param.v = param.v - self.lr * grad
 
 class SGDMomentum(Optimizer):
-    def __init__(self, params, lr=0.001, beta = 0.9):
+    def __init__(self, params, lr=0.001, beta = 0.9, weight_decay=0.0):
         super().__init__(params, lr)
         self.beta = beta
+        self.weight_decay = weight_decay
 
     def step(self):
         for param in self.params:
             if param.grad is not None:
-                param.m = param.m * self.beta + (1-self.beta) * param.grad
+                grad = param.grad + self.weight_decay * param.v
+                param.m = param.m * self.beta + (1-self.beta) * grad
                 param.v = param.v - param.m * self.lr
 
 class ADAM(Optimizer):
-    def __init__(self, params, lr=0.001, beta = 0.9, gamma = 0.999):
+    def __init__(self, params, lr=0.001, beta = 0.9, gamma = 0.999, weight_decay=0.0):
         super().__init__(params, lr)
         self.beta = beta
         self.gamma = gamma
+        self.weight_decay = weight_decay
         self.t = 0
         self.eps = 1.e-8
 
@@ -55,8 +60,9 @@ class ADAM(Optimizer):
             if param.grad is None:
                 continue
             
-            param.m =  param.m * self.beta + (1-self.beta) * param.grad
-            param.vel = param.vel * self.gamma + (1-self.gamma) * param.grad**2
+            grad = param.grad + self.weight_decay * param.v
+            param.m =  param.m * self.beta + (1-self.beta) * grad
+            param.vel = param.vel * self.gamma + (1-self.gamma) * grad**2
 
             m_tilde = param.m / (1 - self.beta**self.t)
             vel_tilde = param.vel / (1 - self.gamma**self.t)
