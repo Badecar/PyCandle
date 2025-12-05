@@ -111,7 +111,6 @@ class Conv2D(Module):
 
         # Defining bias
         if self.use_bias:
-            # same range as weights (standard practice)
             #(Out_Channels, 1, 1) to broadcast over (N, Out_C, H, W)
             self.bias = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=(num_kernels, 1, 1)))
         else:
@@ -126,10 +125,6 @@ class Conv2D(Module):
             self.padding = self.kernel_size[0] // 2
         else:
             self.padding = padding
-
-    def pad(self, x:Tensor) -> Tensor:
-        #np.pad. Perhaps define in Tensor class
-        pass
 
     def forward(self, x:Tensor) -> Tensor:
         col, (N, h_out, w_out) = x.img2col(

@@ -92,7 +92,6 @@ class Tensor:
             elif grad_fn.get("T", None) != None:
                 input.backprop(bp.T)
                 
-            # TODO: CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
                 input.backprop(grad @ bp[start_index:end_index])
             else:

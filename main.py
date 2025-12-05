@@ -35,18 +35,6 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, drop
 class Model(Module):
     def __init__(self, num_classes:int, in_channels:int):
         super().__init__()
-
-        # self.layers = Sicquential(
-        #     Flatten(),
-        #     Linear(n_iton=in_channels, n_out=600, bias=True),
-        #     ReLU(),
-        #     Linear(n_in=600, n_out= 600, bias=True),
-        #     ReLU(),
-        #     Linear(n_in=600, n_out=120, bias=True),
-        #     ReLU(),
-        #     Linear(n_in=120, n_out=num_classes, bias=True)
-        # )
-
         self.layers = Sicquential(
             Conv2D(in_channels=1, num_kernels=32, kernel_size=3, stride=1, padding="same"),
             ReLU(),
@@ -68,9 +56,6 @@ class Model(Module):
     
     def forward(self, x):
         return self.layers(x)
-
-
-        
 
 model = Model(in_channels=28*28, num_classes=10)
 optimizer = ADAM(model.parameters(), lr=LEARNING_RATE)

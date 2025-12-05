@@ -78,7 +78,7 @@ class PyTorchModel(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device ="cpu"
 print(f"Using device: {device}")
 
 model = PyTorchModel(num_classes=10).to(device)
