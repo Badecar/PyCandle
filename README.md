@@ -4,7 +4,7 @@
 
 Implementation of a fully-connected feedforward neural network from scratch using only NumPy, with comprehensive hyperparameter sweeps and experiment tracking using Weights & Biases.
 
-## 🎯 Project Overview
+## Project Overview
 
 This project implements a neural network from scratch for the DTU course 02456 Deep Learning. We've built:
 
@@ -16,10 +16,9 @@ This project implements a neural network from scratch for the DTU course 02456 D
 - Comprehensive experiment tracking with WandB
 
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Setup
-
 
 
 ```bash
@@ -64,28 +63,28 @@ Go to https://wandb.ai and open your project to see:
 - Parallel coordinates plots
 
 
-## 🎓 Project Requirements
+## Project Requirements
 
 This implementation fulfills all project requirements:
 
-✅ **Forward pass:** Matrix multiplications + activation functions  
-✅ **Loss computation:** Cross-entropy with L2 regularization  
-✅ **Backward pass:** Manual derivative calculation and weight updates  
-✅ **Training loop:** Mini-batch gradient descent  
-✅ **Evaluation:** Accuracy, loss curves, confusion matrices  
-✅ **WandB logging:** Learning curves, parameter histograms, gradient norms  
-✅ **Hyperparameter sweeps:** Random and Bayesian search ⭐  
-✅ **Summary reports:** Comparing activations and initializations ⭐  
+**Forward pass:** Matrix multiplications + activation functions  
+**Loss computation:** Cross-entropy with L2 regularization  
+**Backward pass:** Manual derivative calculation and weight updates  
+**Training loop:** Mini-batch gradient descent  
+**Evaluation:** Accuracy, loss curves, confusion matrices  
+**WandB logging:** Learning curves, parameter histograms, gradient norms  
+**Hyperparameter sweeps:** Random and Bayesian search
+**Summary reports:** Comparing activations and initializations
 
 
-## 📊 Experiment Features
+## Experiment Features
 
 The unified `experiments.py` script provides:
 
 **Training with WandB Logging:**
 - Learning curves (train_loss, val_loss, accuracy, val_acc)
-- Parameter histograms (built-in + custom charts) per layer, per epoch 📊
-- Gradient histograms and norms (detect vanishing/exploding gradients) 📊
+- Parameter histograms (built-in + custom charts) per layer, per epoch
+- Gradient histograms and norms (detect vanishing/exploding gradients)
 - Weight statistics (mean, std, min, max)
 - Real-time monitoring of training progress
 
@@ -101,7 +100,7 @@ The unified `experiments.py` script provides:
 - Optimizers (SGD, SGDMomentum, ADAM)
 - Multiple runs with statistical analysis
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 **Issue: Import errors**
 ```bash
@@ -132,18 +131,17 @@ python experiments.py --mode compare --compare-type activation --runs 1
 python experiments.py --mode sweep --sweep-count 10
 ```
 
-## 👥 Team
+## Team
 
 Group 60 - DTU Deep Learning Course 02456
 
-## 📝 License
+## License
 
 This project is for educational purposes as part of DTU course 02456.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - DTU 02456 Deep Learning course staff
 - Weights & Biases for experiment tracking platform
 - Fashion-MNIST dataset creators
-
----
+- LLM's for helping with documentation
