@@ -8,7 +8,7 @@ class Tensor:
     A tensor which holds a array and enables gradient computations.
     """
 
-    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad:Bool = True):
+    def __init__(self, val: np.ndarray|list, grad_fn=lambda: [], custom_name=None, requires_grad = True):
         self.v = np.array(val, dtype=float)
         self.grad_fn = grad_fn
         self._grad = None
@@ -58,8 +58,10 @@ class Tensor:
             start_index = grad_fn.get("start_index", None)
             end_index = grad_fn.get("end_index", None)
             matrix_side = grad_fn.get("matrix", None)
-            transposed = grad_fn.get("T", None)
             orig_shape = grad_fn.get("orig_shape", None)
+            permute_back = grad_fn.get("permute_back", None)
+            padding = grad_fn.get("padding", None)
+            stride = grad_fn.get("stride", None)
 
             if debug:
                 print("custom_name", self.custom_name)
@@ -71,15 +73,21 @@ class Tensor:
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
                     input.backprop(grad @ bp)
-            
-            elif transposed != None:
-                input.backprop(bp.T)
+
+            elif permute_back is not None:
+                input.backprop(bp.transpose(permute_back))
 
             elif orig_shape != None:
                 bp = bp.reshape(orig_shape)
                 input.backprop(bp)
+
+            elif padding and stride != None:
                 
-            # CAT PART OF BACKPROP NOT FIXED YET!!!
+            
+            elif grad_fn.get("T", None) != None:
+                input.backprop(bp.T)
+                
+            # TODO: CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
                 input.backprop(grad @ bp[start_index:end_index])
             else:
@@ -234,27 +242,72 @@ class Tensor:
     def log(self):
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
 
+    def permute(self, *axes):
+        # Calculate the new shape based on the permutation
+        # axes will be a tuple like (1, 0, 2, 3)
+        
+        # Helper to define the backward pass (grad_fn)
+        # The backward of a permute is just permuting back to the original order (argsort)
+        def grad_fn():
+            inverse_axes = np.argsort(axes)
+            return [{
+                "input": self, 
+                "grad": None, 
+                "permute_back": inverse_axes 
+            }]
+
+        new_v = self.v.transpose(axes)
+    
+        return Tensor(
+            new_v, 
+            grad_fn, 
+            requires_grad=self.requires_grad
+        )
+
     def img2col(self, stride:int, kernels, padding:int, kernel_size:tuple[int,int], in_channels:int):
-        im_flat = np.zeros([kernels.v.size, self.v.size])
-        h_out = int((self.v.shape[2] + 2 * padding - kernel_size[0]) // stride + 1)
-        w_out = int((self.v.shape[3] + 2 * padding - kernel_size[1]) // stride + 1)
-        batches = int(self.v.shape[0])
-        channels = in_channels
+        shape = self.shape #(Batch, Channel, Height, Width)
+        N, C, H, W = shape
+        KH, KW = kernel_size
+        
+        h_out = int((H + 2 * padding - KH) // stride + 1)
+        w_out = int((W + 2 * padding - KW) // stride + 1)
 
+        if padding > 0:
+            v = np.pad(self.v, ((0,0), (0,0), (padding, padding), (padding, padding)), mode='constant')
+        else:
+            v = self.v
 
-        start_positions = 
+        col = []
+        for n in range(N):
+            for i in range(0, H + 2*padding - KH + 1, stride):
+                for j in range(0, W + 2*padding - KW + 1, stride):
+                    patch = v[n, :, i:i+KH, j:j+KW]
+                    # Flatten patch to (C * KH * KW)
+                    col.append(patch.reshape(-1)) #Using Python append and not np.append (O(1) vs O(N^2))
 
+        col_matrix = np.array(col).T  # Transpose to get (C * KH * KW, N * h_out * w_out)
 
-        for i in range(kernels.v.size * channels): # Looping over positions in a kernel
-            for j in range(h_out * w_out * batches): # Looping over all out_pixels
-                img_nr = j // batches
-                ch = i // (h_out * w_out)
-                axis_0 = i // (kernel_size[0] - ch*kernel_size[0]) + j // (kernel_size[1] - img_nr*kernel_size[1])
-                axis_1 = i % kernel_size[1] + j % kernel_size[1]
-                im_flat[i,j] = self.v[img_nr, ch, axis_0, axis_1]
+        def grad_fn():
+            return [{
+                "input": self,
+                "grad": None,
+                "im2_col_info": {
+                    "padding":padding,
+                    "stride":stride,
+                    "H_in": H,
+                    "W_in": W,
+                    "kernel_size": kernel_size,
+                    "h_out"
+                    }
+            }]
 
-        im_flat = Tensor(im_flat)
-        return im_flat
+        out_tensor = Tensor(
+            col_matrix,
+            grad_fn,
+            requires_grad=self.requires_grad,
+        )
+
+        return out_tensor, (N, H, W)
 
 
     ## ACTIVATION FUNCTIONS ##
@@ -263,7 +316,6 @@ class Tensor:
         lambda: [{"input": self, "grad": (self.v > 0.0).astype(float)}],
         requires_grad=self.requires_grad)
     
-
 
 if __name__ == "__main__":
     a = Tensor(np.array([[1,2,3,4],[1,2,3,4],[1,2,3,4]]))

@@ -13,7 +13,7 @@ import wandb
 
 # --- HYPERPARAMETERS ---
 LEARNING_RATE = 0.001
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 NUM_EPOCHS = 1
 use_wandb = False
 
@@ -36,13 +36,24 @@ class Model(Module):
     def __init__(self, num_classes:int, in_channels:int):
         super().__init__()
 
+        # self.layers = Sicquential(
+        #     Flatten(),
+        #     Linear(n_in=in_channels, n_out=600, bias=True),
+        #     ReLU(),
+        #     Linear(n_in=600, n_out= 600, bias=True),
+        #     ReLU(),
+        #     Linear(n_in=600, n_out=120, bias=True),
+        #     ReLU(),
+        #     Linear(n_in=120, n_out=num_classes, bias=True)
+        # )
+
         self.layers = Sicquential(
+            Conv2D(in_channels=1, num_kernels=10, kernel_size=3, stride=1, padding="same"),
+            ReLU(),
+            Conv2D(in_channels=10, num_kernels=5, kernel_size=3, stride=1, padding="same"),
+            ReLU(),
             Flatten(),
-            Linear(n_in=in_channels, n_out=600, bias=True),
-            ReLU(),
-            Linear(n_in=600, n_out= 600, bias=True),
-            ReLU(),
-            Linear(n_in=600, n_out=120, bias=True),
+            Linear(n_in=5*28*28, n_out=120, bias=True),
             ReLU(),
             Linear(n_in=120, n_out=num_classes, bias=True)
         )
