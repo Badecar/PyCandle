@@ -12,7 +12,7 @@ class FFNN(Module):
             raise ValueError(f"Unknown activation: {activation}")
 
         layers = [Flatten()]
-        
+
         # Build hidden layers based on config
         prev_size = in_channels
         for hidden_size in hidden_layer_config:

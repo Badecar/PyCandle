@@ -30,11 +30,18 @@ pip install -r requirements.txt
 wandb login
 ```
 
-### 2. Run the main.py file
+### 2.a Run the main.py file
 
 ```bash
 python main.py
 ```
+
+### 2.b For the CNN, run the main_CNN.py file
+
+```bash
+python main_CNN.py
+```
+
 
 ### 3. If you want to run experiments, you can do the following:
 

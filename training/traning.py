@@ -9,7 +9,7 @@ from utils.tensor import Tensor
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def train_model(model:Module, loader, val_loader, optim, criterion, epochs, use_wandb):
+def train_model(model:Module, loader, val_loader, optim, criterion, epochs, use_wandb=False):
     loss_list = []
     for epoch in range(epochs):
         model.train()
