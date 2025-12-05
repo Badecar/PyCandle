@@ -20,7 +20,6 @@ use_wandb = False
 # Configuring wandb
 if use_wandb:
     run = wandb.init(project="simple-nn-from-scratch",
-                #  entity="s234817",
                  name="simple-nn" ,
                  reinit=True )
     wandb.config = {
@@ -35,24 +34,15 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, drop
 class Model(Module):
     def __init__(self, num_classes:int, in_channels:int):
         super().__init__()
-
         self.layers = Sequential(
-            Conv2D(in_channels=1, num_kernels=32, kernel_size=3, stride=1, padding="same"),
-            ReLU(),
-            Conv2D(in_channels=32, num_kernels=32, kernel_size=3, stride=1, padding="same"),
-            ReLU(),
-            MaxPool2D(2,2), #14x14
-
-            Conv2D(in_channels=32, num_kernels=64, kernel_size=3, stride=1, padding="same"),
-            ReLU(),
-            Conv2D(in_channels=64, num_kernels=64, kernel_size=3, stride=1, padding="same"),
-            ReLU(),
-            MaxPool2D(2,2), #7x7
-
             Flatten(),
-            Linear(n_in=64*7*7, n_out=512, bias=True),
+            Linear(n_in=in_channels, n_out=600, bias=True),
             ReLU(),
-            Linear(n_in=512, n_out=num_classes, bias=True)
+            Linear(n_in=600, n_out= 600, bias=True),
+            ReLU(),
+            Linear(n_in=600, n_out=120, bias=True),
+            ReLU(),
+            Linear(n_in=120, n_out=num_classes, bias=True)
         )
     
     def forward(self, x):
