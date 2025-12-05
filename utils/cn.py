@@ -11,7 +11,7 @@ class Parameter(Tensor):
 
 class Module(ABC):
     def __init__(self):
-        self.train_mode = True #NOTE: Not used atm, but needs to be used when we implement batchnorm
+        self.train_mode = True #NOTE: Not used atm, but needs to be used if we implement Batchnorm
 
     @abstractmethod
     def forward(self, x: Tensor) -> Tensor:
@@ -96,19 +96,26 @@ class Linear(Module):
         return x
 
 class Conv2D(Module):
-    def __init__(self, in_channels: int, num_kernels: int, kernel_size: tuple[int, int], stride: int = 1, padding: int | str = 0, bias: bool = True, padding_mode: str = 'zeros'):
+    def __init__(self, in_channels: int, num_kernels: int, kernel_size: int|tuple[int, int], stride: int = 1, padding: int | str = 0, bias: bool = True):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = num_kernels
         self.stride = stride
         self.use_bias = bias
-        self.padding_mode = padding_mode
 
         # Defining kernels
         self.kernel_size = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
         kernel_shape = (num_kernels, in_channels, self.kernel_size[0], self.kernel_size[1])
         k = 1 / (in_channels * self.kernel_size[0] * self.kernel_size[1])
         self.kernels = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=kernel_shape))
+
+        # Defining bias
+        if self.use_bias:
+            # same range as weights (standard practice)
+            #(Out_Channels, 1, 1) to broadcast over (N, Out_C, H, W)
+            self.bias = Parameter(np.random.uniform(-np.sqrt(k), np.sqrt(k), size=(num_kernels, 1, 1)))
+        else:
+            self.bias = None
         
         # Defining padding
         if isinstance(padding, str):
@@ -119,18 +126,41 @@ class Conv2D(Module):
             self.padding = self.kernel_size[0] // 2
         else:
             self.padding = padding
-    
+
     def pad(self, x:Tensor) -> Tensor:
         #np.pad. Perhaps define in Tensor class
         pass
 
     def forward(self, x:Tensor) -> Tensor:
-        col = x.img2col(
+        col, (N, h_out, w_out) = x.img2col(
             stride=self.stride,
             kernels=self.kernels,
             padding=self.padding,
             kernel_size=self.kernel_size,
-            in_channels=self.in_channels)
-        kernel_matrix = self.kernels.flatten(start_dim=1)
-        return kernel_matrix @ col #Boom!
+            in_channels=self.in_channels,
+        )
+        
+        kernel_matrix = self.kernels.flatten(start_dim=1) #(Out_C, In_C * KH * KW)
+        output = kernel_matrix @ col #(Out_C, Pixels)
+        output = output.unflatten(1, (N, h_out, w_out)) #(Out_C, N, H_out, W_out)
+        
+        output = output.permute(1, 0, 2, 3) # (N, Out_C, H_out, W_out)
 
+        if self.use_bias:
+            output = output + self.bias
+        return output #Boom!
+
+
+class MaxPool2D(Module):
+    def __init__(self, kernel_size: int | tuple[int, int], stride: int = None, padding: int = 0):
+        super().__init__()
+        self.kernel_size = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
+        self.stride = stride if stride is not None else self.kernel_size[0]
+        self.padding = padding
+
+    def forward(self, x: Tensor) -> Tensor:
+        return x.max_pool2d(
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.padding
+        )

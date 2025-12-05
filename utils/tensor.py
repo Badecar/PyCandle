@@ -58,8 +58,10 @@ class Tensor:
             start_index = grad_fn.get("start_index", None)
             end_index = grad_fn.get("end_index", None)
             matrix_side = grad_fn.get("matrix", None)
-            transposed = grad_fn.get("T", None)
             orig_shape = grad_fn.get("orig_shape", None)
+            permute_back = grad_fn.get("permute_back", None)
+            im2_col_info = grad_fn.get("im2_col_info", None)
+            max_pool_info = grad_fn.get("max_pool_info", None)
 
             if debug:
                 print("custom_name", self.custom_name)
@@ -71,15 +73,26 @@ class Tensor:
                     input.backprop(bp @ grad)
                 elif matrix_side == "R":
                     input.backprop(grad @ bp)
-            
-            elif transposed != None:
-                input.backprop(bp.T)
+
+            elif permute_back is not None:
+                input.backprop(bp.transpose(permute_back))
 
             elif orig_shape != None:
                 bp = bp.reshape(orig_shape)
                 input.backprop(bp)
+
+            elif im2_col_info != None:
+                bp = self.col2img(im2_col_info, bp)
+                input.backprop(bp)
+
+            elif max_pool_info is not None:
+                bp = self.max_pool2d_bp(max_pool_info, bp)
+                input.backprop(bp)
+            
+            elif grad_fn.get("T", None) != None:
+                input.backprop(bp.T)
                 
-            # CAT PART OF BACKPROP NOT FIXED YET!!!
+            # TODO: CAT PART OF BACKPROP NOT FIXED YET!!!
             elif start_index is not None and end_index is not None:
                 input.backprop(grad @ bp[start_index:end_index])
             else:
@@ -234,27 +247,163 @@ class Tensor:
     def log(self):
         return Tensor(np.log(self.v), lambda: [{"input" : self, "grad" : self.v ** -1}], requires_grad=self.requires_grad)
 
+    def permute(self, *axes):
+        # Calculate the new shape based on the permutation
+        # axes will be a tuple like (1, 0, 2, 3)
+        
+        # Helper to define the backward pass (grad_fn)
+        # The backward of a permute is just permuting back to the original order (argsort)
+        def grad_fn():
+            inverse_axes = np.argsort(axes)
+            return [{
+                "input": self, 
+                "grad": None, 
+                "permute_back": inverse_axes 
+            }]
+
+        new_v = self.v.transpose(axes)
+    
+        return Tensor(
+            new_v, 
+            grad_fn, 
+            requires_grad=self.requires_grad
+        )
+
     def img2col(self, stride:int, kernels, padding:int, kernel_size:tuple[int,int], in_channels:int):
-        im_flat = np.zeros([kernels.v.size, self.v.size])
-        h_out = int((self.v.shape[2] + 2 * padding - kernel_size[0]) // stride + 1)
-        w_out = int((self.v.shape[3] + 2 * padding - kernel_size[1]) // stride + 1)
-        batches = int(self.v.shape[0])
-        channels = in_channels
+        shape = self.shape #(Batch, Channel, Height, Width)
+        N, C, H, W = shape
+        KH, KW = kernel_size
+
+        h_out = (H + 2 * padding - KH) // stride + 1
+        w_out = (W + 2 * padding - KW) // stride + 1
+        
+        if padding > 0:
+            v = np.pad(self.v, ((0,0), (0,0), (padding, padding), (padding, padding)), mode='constant')
+        else:
+            v = self.v
+
+        col = []
+        for i in range(0, H + 2*padding - KH + 1, stride):
+            for j in range(0, W + 2*padding - KW + 1, stride): #looping over all start positions of the kernel
+                patch = v[:, :, i:i+KH, j:j+KW]
+                # Flatten patch to (C * KH * KW)
+                col.append(patch.reshape(N, -1)) #Using Python append and not np.append (O(1) vs O(N^2))
+
+        col_stacked = np.array(col) #(h_out*w_out, N, C*KH*KW)
+        col_stacked = col_stacked.transpose(1, 0, 2) #(N, h_out*w_out, C*KH*KW)
+        col_matrix = col_stacked.reshape(-1, C * KH * KW) #(N * h_out*w_out, C*KH*KW)
+        col_matrix = col_matrix.T #(C*KH*KW, N * h_out*w_out)
+
+        def grad_fn():
+            return [{
+                "input": self,
+                "grad": None,
+                "im2_col_info": [padding, stride, shape, kernel_size]
+            }]
+
+        out_tensor = Tensor(
+            col_matrix,
+            grad_fn,
+            requires_grad=self.requires_grad,
+        )
+
+        return out_tensor, (N, h_out, w_out)
+
+    def col2img(self, im2_col_info, grad): # implemented as the opposite operation as in im2col
+        padding, stride, shape, kernel_size = im2_col_info
+        N, C, H, W = shape
+        KH, KW = kernel_size
+
+        h_out = (H + 2 * padding - KH) // stride + 1
+        w_out = (W + 2 * padding - KW) // stride + 1
+
+        grad = grad.reshape(C, KH, KW, N, h_out, w_out) #for easier looping
+        grad = grad.transpose(3, 0, 4, 5, 1, 2) #(N, C, h_out, w_out, KH, KW) , Batch -> Channel -> slide over image -> kernel
+
+        grad_padded = np.zeros((N, C, H + 2 * padding, W + 2 * padding), dtype=grad.dtype)
+
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * stride
+                w_start = j * stride
+
+                # Add the gradients from this kernel position back to the image block
+                grad_patch = grad[:, :, i, j, :, :] # taking all gradients for all N and C at a specific kernel position for all entries in the KH and KW
+                                                    # becomes (N, C, KH, KW)
+                grad_padded[:, :, h_start:h_start+KH, w_start:w_start+KW] += grad_patch # Adding to a 2D "area" of the output grad, also of shape (N, C, KH, KW)
+
+        if padding > 0:
+            return grad_padded[:, :, padding:-padding, padding:-padding]
+        return grad_padded
 
 
-        # start_positions = 
+    def max_pool2d(self, kernel_size: tuple[int, int], stride: int = None, padding: int = 0): # Implementing this almost exactly as img2col. Just treating each C as an independent img as well as N (C*N in shape)
+        if stride is None:
+            stride = kernel_size[0]
 
+        N, C, H, W = self.shape
+        KH, KW = kernel_size
 
-        for i in range(kernels.v.size * channels): # Looping over positions in a kernel
-            for j in range(h_out * w_out * batches): # Looping over all out_pixels
-                img_nr = j // batches
-                ch = i // (h_out * w_out)
-                axis_0 = i // (kernel_size[0] - ch*kernel_size[0]) + j // (kernel_size[1] - img_nr*kernel_size[1])
-                axis_1 = i % kernel_size[1] + j % kernel_size[1]
-                im_flat[i,j] = self.v[img_nr, ch, axis_0, axis_1]
+        x_reshaped = self.v.reshape(N * C, 1, H, W) #(N, C, H, W) -> (N*C, 1, H, W)
+        
 
-        im_flat = Tensor(im_flat)
-        return im_flat
+        if padding > 0:
+            x_padded = np.pad(x_reshaped, ((0,0), (0,0), (padding, padding), (padding, padding)), mode='constant', constant_values=-np.inf)
+        else:
+            x_padded = x_reshaped
+            
+        h_out = (H + 2 * padding - KH) // stride + 1
+        w_out = (W + 2 * padding - KW) // stride + 1
+        
+
+        col = []
+        for i in range(0, H + 2 * padding - KH + 1, stride):
+            for j in range(0, W + 2 * padding - KW + 1, stride):
+                patch = x_padded[:, :, i:i+KH, j:j+KW]
+                col.append(patch.reshape(N * C, -1))
+                
+        # Stack and reshape to (KH*KW, (N*C)*h_out*w_out)
+        col = np.array(col) # (h_out*w_out, N*C, KH*KW)
+        col = col.transpose(1, 0, 2) # (N*C, h_out*w_out, KH*KW)
+        col = col.reshape(-1, KH * KW).T # (KH*KW, N*C*h_out*w_out)
+        
+        out_vec = np.max(col, axis=0)
+        max_indices = np.argmax(col, axis=0) #indices of the max values for backprop
+        
+        # 4. Reshape output back to (N, C, h_out, w_out)
+        out_reshaped = out_vec.reshape(N, C, h_out, w_out)
+
+        def grad_fn():
+            return [{
+                "input": self,
+                "grad": None,
+                "max_pool_info": {
+                    "indices": max_indices,
+                    "col_shape": col.shape,
+                    "im2col_info": [padding, stride, (N * C, 1, H, W), kernel_size],
+                    "orig_shape": (N, C, H, W)
+                }
+            }]
+
+        return Tensor(out_reshaped, grad_fn, requires_grad=self.requires_grad)
+
+    def max_pool2d_bp(self, max_pool_info, grad):
+        indices = max_pool_info["indices"]
+        im2col_params = max_pool_info["im2col_info"]
+        col_shape = max_pool_info["col_shape"]
+        orig_shape = max_pool_info["orig_shape"]
+        
+        grad_flat = grad.flatten()
+        d_col = np.zeros(col_shape)
+        
+        # Route gradients to the max index for each column
+        for i in range(len(indices)):
+            row_idx = indices[i]
+            d_col[row_idx, i] = grad_flat[i]
+            
+        d_im = self.col2img(im2col_params, d_col)
+        
+        return d_im.reshape(orig_shape)
 
 
     ## ACTIVATION FUNCTIONS ##
