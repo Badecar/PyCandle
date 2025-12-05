@@ -13,8 +13,8 @@ import wandb
 
 # --- HYPERPARAMETERS ---
 LEARNING_RATE = 0.001
-BATCH_SIZE = 256
-NUM_EPOCHS = 10
+BATCH_SIZE = 32
+NUM_EPOCHS = 1
 use_wandb = False
 
 # Configuring wandb
@@ -38,7 +38,7 @@ class Model(Module):
 
         # self.layers = Sicquential(
         #     Flatten(),
-        #     Linear(n_in=in_channels, n_out=600, bias=True),
+        #     Linear(n_iton=in_channels, n_out=600, bias=True),
         #     ReLU(),
         #     Linear(n_in=600, n_out= 600, bias=True),
         #     ReLU(),
@@ -68,6 +68,8 @@ class Model(Module):
     
     def forward(self, x):
         return self.layers(x)
+
+
         
 
 model = Model(in_channels=28*28, num_classes=10)
