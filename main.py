@@ -13,7 +13,7 @@ import wandb
 
 # --- HYPERPARAMETERS ---
 LEARNING_RATE = 0.001
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 NUM_EPOCHS = 1
 use_wandb = False
 
@@ -48,14 +48,22 @@ class Model(Module):
         # )
 
         self.layers = Sicquential(
-            Conv2D(in_channels=1, num_kernels=10, kernel_size=3, stride=1, padding="same"),
+            Conv2D(in_channels=1, num_kernels=32, kernel_size=3, stride=1, padding="same"),
             ReLU(),
-            Conv2D(in_channels=10, num_kernels=5, kernel_size=3, stride=1, padding="same"),
+            Conv2D(in_channels=32, num_kernels=32, kernel_size=3, stride=1, padding="same"),
             ReLU(),
+            MaxPool2D(2,2), #14x14
+
+            Conv2D(in_channels=32, num_kernels=64, kernel_size=3, stride=1, padding="same"),
+            ReLU(),
+            Conv2D(in_channels=64, num_kernels=64, kernel_size=3, stride=1, padding="same"),
+            ReLU(),
+            MaxPool2D(2,2), #7x7
+
             Flatten(),
-            Linear(n_in=5*28*28, n_out=120, bias=True),
+            Linear(n_in=64*7*7, n_out=512, bias=True),
             ReLU(),
-            Linear(n_in=120, n_out=num_classes, bias=True)
+            Linear(n_in=512, n_out=num_classes, bias=True)
         )
     
     def forward(self, x):
